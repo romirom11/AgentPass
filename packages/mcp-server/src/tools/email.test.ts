@@ -11,12 +11,12 @@ describe("EmailServiceAdapter", () => {
   describe("getEmailAddress", () => {
     it("should return a valid email address for an agent name", () => {
       const address = service.getEmailAddress("my-agent");
-      expect(address).toBe("my-agent@agentpass.dev");
+      expect(address).toBe("my-agent@agent-mail.xyz");
     });
 
     it("should sanitize agent names with special characters", () => {
       const address = service.getEmailAddress("My Agent 42");
-      expect(address).toBe("my-agent-42@agentpass.dev");
+      expect(address).toBe("my-agent-42@agent-mail.xyz");
     });
 
     it("should throw for empty/invalid agent names", () => {
@@ -26,7 +26,7 @@ describe("EmailServiceAdapter", () => {
 
   describe("listEmails", () => {
     it("should return empty array for new address", () => {
-      const emails = service.listEmails("fresh@agentpass.dev");
+      const emails = service.listEmails("fresh@agent-mail.xyz");
       expect(emails).toEqual([]);
     });
   });
@@ -35,21 +35,21 @@ describe("EmailServiceAdapter", () => {
     it("should store and retrieve an email", () => {
       service.addTestEmail({
         id: "test-001",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@example.com",
         subject: "Welcome",
         body: "Hello, bot!",
         received_at: new Date().toISOString(),
       });
 
-      const emails = service.listEmails("bot@agentpass.dev");
+      const emails = service.listEmails("bot@agent-mail.xyz");
       expect(emails).toHaveLength(1);
       expect(emails[0]!.id).toBe("test-001");
       expect(emails[0]!.subject).toBe("Welcome");
     });
 
     it("should store multiple emails for the same address", () => {
-      const addr = "multi@agentpass.dev";
+      const addr = "multi@agent-mail.xyz";
 
       service.addTestEmail({
         id: "e1",
@@ -78,7 +78,7 @@ describe("EmailServiceAdapter", () => {
     it("should return the email by ID", () => {
       service.addTestEmail({
         id: "read-test",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "sender@example.com",
         subject: "Test",
         body: "Body content",
@@ -100,7 +100,7 @@ describe("EmailServiceAdapter", () => {
     it("should find a verification URL in the email body", () => {
       service.addTestEmail({
         id: "verify-1",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Verify your email",
         body: "Click here to verify: https://service.com/verify?token=abc123",
@@ -114,7 +114,7 @@ describe("EmailServiceAdapter", () => {
     it("should find a verification URL in HTML", () => {
       service.addTestEmail({
         id: "verify-2",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Confirm account",
         body: "Please confirm",
@@ -129,7 +129,7 @@ describe("EmailServiceAdapter", () => {
     it("should return undefined when no link found", () => {
       service.addTestEmail({
         id: "no-link",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Hello",
         body: "No links here.",
@@ -150,7 +150,7 @@ describe("EmailServiceAdapter", () => {
     it("should find a code with 'code is XXXXXX' pattern", () => {
       service.addTestEmail({
         id: "otp-1",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Your code",
         body: "Your verification code is 482916",
@@ -164,7 +164,7 @@ describe("EmailServiceAdapter", () => {
     it("should find a code with 'OTP: XXXX' pattern", () => {
       service.addTestEmail({
         id: "otp-2",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "OTP",
         body: "Your OTP: 7890",
@@ -178,7 +178,7 @@ describe("EmailServiceAdapter", () => {
     it("should extract code from HTML email body", () => {
       service.addTestEmail({
         id: "otp-3",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Verification",
         body: "",
@@ -193,7 +193,7 @@ describe("EmailServiceAdapter", () => {
     it("should return undefined when no code found", () => {
       service.addTestEmail({
         id: "no-otp",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@service.com",
         subject: "Newsletter",
         body: "No codes here, just text.",
@@ -214,19 +214,19 @@ describe("EmailServiceAdapter", () => {
     it("should resolve immediately if email already exists", async () => {
       service.addTestEmail({
         id: "existing",
-        to: "bot@agentpass.dev",
+        to: "bot@agent-mail.xyz",
         from: "noreply@example.com",
         subject: "Already here",
         body: "This email already arrived",
         received_at: new Date().toISOString(),
       });
 
-      const email = await service.waitForEmail("bot@agentpass.dev");
+      const email = await service.waitForEmail("bot@agent-mail.xyz");
       expect(email.id).toBe("existing");
     });
 
     it("should resolve when email arrives within timeout", async () => {
-      const addr = "wait-test@agentpass.dev";
+      const addr = "wait-test@agent-mail.xyz";
 
       // Add email after a short delay
       setTimeout(() => {
@@ -246,7 +246,7 @@ describe("EmailServiceAdapter", () => {
 
     it("should reject on timeout if no email arrives", async () => {
       await expect(
-        service.waitForEmail("empty@agentpass.dev", undefined, 300),
+        service.waitForEmail("empty@agent-mail.xyz", undefined, 300),
       ).rejects.toThrow("Timed out");
     });
   });

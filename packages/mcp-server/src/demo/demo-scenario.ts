@@ -51,7 +51,7 @@ export async function runDemo(): Promise<DemoResult> {
   const { passport, publicKey } = identityService.createIdentity({
     name: "demo-agent",
     description: "Demo agent for showcase",
-    owner_email: "demo@agentpass.dev",
+    owner_email: "demo@agent-mail.xyz",
   });
   passportId = passport.passport_id;
 
@@ -74,7 +74,7 @@ export async function runDemo(): Promise<DemoResult> {
     service: "github.com",
     username: "demo-agent",
     password: "secret123",
-    email: "demo@agentpass.dev",
+    email: "demo@agent-mail.xyz",
   });
   steps.push({ step: 2, name: step2Name, description: step2Desc, result: storedCred });
   console.log(`\n[Step 2] ${step2Desc}`);

@@ -49,7 +49,7 @@ describe("runDemo", () => {
     const cred = getStep!.result as { username: string; password: string; email: string };
     expect(cred.username).toBe("demo-agent");
     expect(cred.password).toBe("secret123");
-    expect(cred.email).toBe("demo@agentpass.dev");
+    expect(cred.email).toBe("demo@agent-mail.xyz");
   });
 
   it("should demonstrate fallback_login and fallback_register", async () => {
@@ -84,6 +84,6 @@ describe("runDemo", () => {
     const emailStep = r.steps.find((s) => s.name === "get_email_address");
     expect(emailStep).toBeDefined();
     const emailResult = emailStep!.result as { address: string };
-    expect(emailResult.address).toBe("demo-agent@agentpass.dev");
+    expect(emailResult.address).toBe("demo-agent@agent-mail.xyz");
   });
 });

@@ -3,7 +3,7 @@ import { generateEmailAddress, isValidAgentEmail } from './email-address.js';
 
 describe('generateEmailAddress', () => {
   it('creates address with default domain', () => {
-    expect(generateEmailAddress('research-bot')).toBe('research-bot@agentpass.dev');
+    expect(generateEmailAddress('research-bot')).toBe('research-bot@agent-mail.xyz');
   });
 
   it('creates address with custom domain', () => {
@@ -11,19 +11,19 @@ describe('generateEmailAddress', () => {
   });
 
   it('lowercases the agent name', () => {
-    expect(generateEmailAddress('MyAgent')).toBe('myagent@agentpass.dev');
+    expect(generateEmailAddress('MyAgent')).toBe('myagent@agent-mail.xyz');
   });
 
   it('replaces invalid characters with hyphens', () => {
-    expect(generateEmailAddress('my agent!')).toBe('my-agent@agentpass.dev');
+    expect(generateEmailAddress('my agent!')).toBe('my-agent@agent-mail.xyz');
   });
 
   it('collapses consecutive hyphens', () => {
-    expect(generateEmailAddress('my--agent')).toBe('my-agent@agentpass.dev');
+    expect(generateEmailAddress('my--agent')).toBe('my-agent@agent-mail.xyz');
   });
 
   it('trims leading and trailing hyphens', () => {
-    expect(generateEmailAddress('-agent-')).toBe('agent@agentpass.dev');
+    expect(generateEmailAddress('-agent-')).toBe('agent@agent-mail.xyz');
   });
 
   it('throws on empty/invalid name', () => {
@@ -35,15 +35,15 @@ describe('generateEmailAddress', () => {
 
 describe('isValidAgentEmail', () => {
   it('accepts valid agent email', () => {
-    expect(isValidAgentEmail('research-bot@agentpass.dev')).toBe(true);
+    expect(isValidAgentEmail('research-bot@agent-mail.xyz')).toBe(true);
   });
 
   it('accepts single-char local part', () => {
-    expect(isValidAgentEmail('a@agentpass.dev')).toBe(true);
+    expect(isValidAgentEmail('a@agent-mail.xyz')).toBe(true);
   });
 
   it('rejects uppercase', () => {
-    expect(isValidAgentEmail('Agent@agentpass.dev')).toBe(false);
+    expect(isValidAgentEmail('Agent@agent-mail.xyz')).toBe(false);
   });
 
   it('rejects missing domain', () => {
@@ -51,18 +51,18 @@ describe('isValidAgentEmail', () => {
   });
 
   it('rejects missing local part', () => {
-    expect(isValidAgentEmail('@agentpass.dev')).toBe(false);
+    expect(isValidAgentEmail('@agent-mail.xyz')).toBe(false);
   });
 
   it('rejects spaces', () => {
-    expect(isValidAgentEmail('my agent@agentpass.dev')).toBe(false);
+    expect(isValidAgentEmail('my agent@agent-mail.xyz')).toBe(false);
   });
 
   it('rejects local part starting with hyphen', () => {
-    expect(isValidAgentEmail('-agent@agentpass.dev')).toBe(false);
+    expect(isValidAgentEmail('-agent@agent-mail.xyz')).toBe(false);
   });
 
   it('rejects local part ending with hyphen', () => {
-    expect(isValidAgentEmail('agent-@agentpass.dev')).toBe(false);
+    expect(isValidAgentEmail('agent-@agent-mail.xyz')).toBe(false);
   });
 });
