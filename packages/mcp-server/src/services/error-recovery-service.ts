@@ -101,7 +101,7 @@ export class ErrorRecoveryService {
       actions.map((action) => ({
         type: action,
         label: this.actionLabel(action),
-        url: `https://dash.agentpass.dev/error/${errorId}/${action}`,
+        url: `https://dashboard.agentpass.space/error/${errorId}/${action}`,
       })),
     );
 

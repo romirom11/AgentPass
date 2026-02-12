@@ -93,7 +93,7 @@ export async function runBrowserIntegrationDemo(): Promise<void> {
   const { passport } = await identityService.createIdentity({
     name: "demo-browser-agent",
     description: "Test agent for browser integration",
-    owner_email: "demo@agentpass.dev",
+    owner_email: "demo@agent-mail.xyz",
   });
 
   console.log(`Created identity: ${passport.passport_id}\n`);

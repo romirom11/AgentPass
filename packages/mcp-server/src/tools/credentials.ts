@@ -40,7 +40,7 @@ export function registerCredentialTools(
       },
     },
     async ({ passport_id, service, username, password, email }) => {
-      const credential = credentialService.storeCredential({
+      const credential = await credentialService.storeCredential({
         passport_id,
         service,
         username,
@@ -90,7 +90,7 @@ export function registerCredentialTools(
       },
     },
     async ({ passport_id, service }) => {
-      const credential = credentialService.getCredential(passport_id, service);
+      const credential = await credentialService.getCredential(passport_id, service);
 
       if (!credential) {
         return {
@@ -132,7 +132,7 @@ export function registerCredentialTools(
       },
     },
     async ({ passport_id }) => {
-      const credentials = credentialService.listCredentials(passport_id);
+      const credentials = await credentialService.listCredentials(passport_id);
 
       return {
         content: [

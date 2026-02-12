@@ -9,7 +9,10 @@ import type { IdentityService } from "../services/identity-service.js";
 import type { CredentialService } from "../services/credential-service.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { EmailServiceAdapter } from "../services/email-service-adapter.js";
-import type { SmsService } from "../services/sms-service.js";
+import type { SmsServiceInterface } from "../services/sms-service-interface.js";
+import type { TelegramBotService } from "../services/telegram-bot.js";
+import type { WebhookService } from "../services/webhook-service.js";
+import type { ApprovalService } from "../services/approval-service.js";
 import { registerIdentityTools } from "./identity.js";
 import { registerCredentialTools } from "./credentials.js";
 import { registerAuthTools } from "./authenticate.js";
@@ -29,7 +32,10 @@ export function registerAllTools(
     credentialService: CredentialService;
     authService: AuthService;
     emailService: EmailServiceAdapter;
-    smsService: SmsService;
+    smsService: SmsServiceInterface;
+    telegramBot?: TelegramBotService;
+    webhookService?: WebhookService;
+    approvalService?: ApprovalService;
   },
 ): void {
   registerIdentityTools(server, services.identityService);
@@ -37,4 +43,5 @@ export function registerAllTools(
   registerAuthTools(server, services.authService);
   registerEmailTools(server, services.emailService);
   registerSmsTools(server, services.smsService);
+  // Telegram, webhook, and approval services are available but don't need tool registration yet
 }

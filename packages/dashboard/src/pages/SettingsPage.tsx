@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface NotificationPreferences {
   agent_registered: boolean;
@@ -9,33 +9,101 @@ interface NotificationPreferences {
   daily_digest: boolean;
 }
 
+interface Settings {
+  webhookUrl: string;
+  telegramChatId: string;
+  ownerEmail: string;
+  notifications: NotificationPreferences;
+}
+
+const SETTINGS_KEY = "agentpass_settings";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3846";
+
+function loadSettings(): Settings {
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error("Failed to load settings:", error);
+  }
+
+  return {
+    webhookUrl: "",
+    telegramChatId: "",
+    ownerEmail: "owner@example.com",
+    notifications: {
+      agent_registered: true,
+      agent_login: false,
+      agent_error: true,
+      captcha_needed: true,
+      approval_needed: true,
+      daily_digest: true,
+    },
+  };
+}
+
+function saveSettings(settings: Settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.error("Failed to save settings:", error);
+  }
+}
+
 export default function SettingsPage() {
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [settings, setSettings] = useState<Settings>(loadSettings);
   const [webhookSaved, setWebhookSaved] = useState(false);
-  const [telegramChatId, setTelegramChatId] = useState("");
-  const [telegramLinked, setTelegramLinked] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationPreferences>({
-    agent_registered: true,
-    agent_login: false,
-    agent_error: true,
-    captcha_needed: true,
-    approval_needed: true,
-    daily_digest: true,
-  });
+  const [telegramLinked, setTelegramLinked] = useState(
+    !!settings.telegramChatId
+  );
+  const [apiStatus, setApiStatus] = useState<
+    "checking" | "online" | "offline"
+  >("checking");
+
+  // Check API connection status on mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/passports?limit=1`);
+        setApiStatus(response.ok ? "online" : "offline");
+      } catch {
+        setApiStatus("offline");
+      }
+    };
+
+    checkApiStatus();
+  }, []);
 
   const handleSaveWebhook = () => {
+    saveSettings(settings);
     setWebhookSaved(true);
     setTimeout(() => setWebhookSaved(false), 3000);
   };
 
   const handleLinkTelegram = () => {
-    if (telegramChatId.trim()) {
+    if (settings.telegramChatId.trim()) {
       setTelegramLinked(true);
+      saveSettings(settings);
     }
   };
 
   const handleToggleNotification = (key: keyof NotificationPreferences) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    const updated = {
+      ...settings,
+      notifications: { ...settings.notifications, [key]: !settings.notifications[key] },
+    };
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
+  const updateWebhookUrl = (value: string) => {
+    setSettings({ ...settings, webhookUrl: value });
+  };
+
+  const updateTelegramChatId = (value: string) => {
+    setSettings({ ...settings, telegramChatId: value });
   };
 
   const notificationOptions: {
@@ -75,6 +143,18 @@ export default function SettingsPage() {
     },
   ];
 
+  const getStatusColor = () => {
+    if (apiStatus === "online") return "bg-emerald-500";
+    if (apiStatus === "offline") return "bg-red-500";
+    return "bg-gray-400";
+  };
+
+  const getStatusLabel = () => {
+    if (apiStatus === "online") return "Online";
+    if (apiStatus === "offline") return "Offline";
+    return "Checking...";
+  };
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -99,7 +179,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700">Email</p>
-                <p className="text-sm text-gray-500">owner@agentpass.dev</p>
+                <p className="text-sm text-gray-500">{settings.ownerEmail}</p>
               </div>
               <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
                 <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -107,10 +187,26 @@ export default function SettingsPage() {
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">Owner ID</p>
+              <p className="text-sm font-medium text-gray-700">API Server URL</p>
               <p className="font-mono text-sm text-gray-500">
-                owner_a1b2c3d4e5f6
+                {API_URL}
               </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">
+                  Connection Status
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  API server connectivity
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                <span
+                  className={`mr-1.5 h-1.5 w-1.5 rounded-full ${getStatusColor()}`}
+                />
+                {getStatusLabel()}
+              </span>
             </div>
           </div>
         </section>
@@ -127,8 +223,8 @@ export default function SettingsPage() {
           <div className="mt-6 flex gap-3">
             <input
               type="url"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
+              value={settings.webhookUrl}
+              onChange={(e) => updateWebhookUrl(e.target.value)}
               placeholder="https://your-server.com/webhook"
               className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
             />
@@ -176,8 +272,8 @@ export default function SettingsPage() {
               <div className="mt-2 flex gap-3">
                 <input
                   type="text"
-                  value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  value={settings.telegramChatId}
+                  onChange={(e) => updateTelegramChatId(e.target.value)}
                   placeholder="e.g. 123456789"
                   className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                 />
@@ -208,7 +304,7 @@ export default function SettingsPage() {
                   </svg>
                 </span>
                 <span className="text-sm font-medium text-emerald-800">
-                  Telegram bot linked successfully (Chat ID: {telegramChatId})
+                  Telegram bot linked successfully (Chat ID: {settings.telegramChatId})
                 </span>
               </div>
             )}
@@ -232,7 +328,7 @@ export default function SettingsPage() {
               >
                 <input
                   type="checkbox"
-                  checked={notifications[option.key]}
+                  checked={settings.notifications[option.key]}
                   onChange={() => handleToggleNotification(option.key)}
                   className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />

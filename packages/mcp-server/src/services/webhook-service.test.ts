@@ -56,7 +56,7 @@ describe("WebhookService", () => {
           {
             type: "solve",
             label: "Solve CAPTCHA",
-            url: "https://dash.agentpass.dev/solve/123",
+            url: "https://dashboard.agentpass.space/solve/123",
           },
         ],
       );

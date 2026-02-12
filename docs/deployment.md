@@ -6,7 +6,8 @@ Complete guide for deploying AgentPass to production.
 
 - [ ] Cloudflare account (for Email Worker)
 - [ ] Domain `agent-mail.xyz` configured in Cloudflare DNS
-- [ ] Domain `agentpass.kdnx.cloud` pointing to your server
+- [ ] Domain `agentpass.space` for landing page
+- [ ] Domain `api.agentpass.space` pointing to your API server
 - [ ] Node.js 22+ and pnpm installed
 - [ ] Wrangler CLI: `npm install -g wrangler`
 
@@ -44,7 +45,7 @@ wrangler secret put WEBHOOK_SECRET
 # Enter: <generate strong random key, save it for API server>
 
 wrangler secret put API_SERVER_URL
-# Enter: https://agentpass.kdnx.cloud
+# Enter: https://api.agentpass.space
 
 # Deploy worker
 pnpm build
@@ -93,7 +94,7 @@ Or via Cloudflare Dashboard:
 
 4. **Configure domain**
    - Railway Dashboard → Settings → Networking
-   - Add custom domain: `agentpass.kdnx.cloud`
+   - Add custom domain: `api.agentpass.space`
 
 ### Option B: Deploy to Render
 
@@ -114,7 +115,7 @@ Or via Cloudflare Dashboard:
 
 3. **Custom Domain**
    - Settings → Custom Domains
-   - Add: `agentpass.kdnx.cloud`
+   - Add: `api.agentpass.space`
 
 ### Option C: Self-Hosted (VPS)
 
@@ -168,7 +169,7 @@ sudo systemctl status agentpass-api
 ```nginx
 server {
     listen 80;
-    server_name agentpass.kdnx.cloud;
+    server_name api.agentpass.space;
 
     location / {
         proxy_pass http://localhost:3846;
@@ -206,7 +207,7 @@ Or connect via Cloudflare Dashboard:
 
 **Custom domain:**
 - Cloudflare Pages → agentpass-landing → Custom Domains
-- Add: `agentpass.xyz` or `www.agentpass.xyz`
+- Add: `agentpass.space` (main landing page)
 
 ---
 
@@ -233,7 +234,7 @@ Or via GitHub:
 
 **Custom domain:**
 - Vercel → Project Settings → Domains
-- Add: `dashboard.agentpass.kdnx.cloud`
+- Add: `dashboard.agentpass.space`
 
 ---
 
@@ -242,7 +243,7 @@ Or via GitHub:
 ### Email Worker (Cloudflare)
 ```bash
 WEBHOOK_SECRET="<random-key>"
-API_SERVER_URL="https://agentpass.kdnx.cloud"
+API_SERVER_URL="https://api.agentpass.space"
 ```
 
 ### API Server
@@ -255,7 +256,7 @@ AGENTPASS_DB_PATH="agentpass.db"
 
 ### Dashboard
 ```bash
-VITE_API_URL="https://agentpass.kdnx.cloud"
+VITE_API_URL="https://api.agentpass.space"
 ```
 
 ---
@@ -276,14 +277,14 @@ VITE_API_URL="https://agentpass.kdnx.cloud"
 
 3. **Check webhook received by API**
    ```bash
-   curl https://agentpass.kdnx.cloud/webhook/email-notifications/test@agent-mail.xyz
+   curl https://api.agentpass.space/webhook/email-notifications/test@agent-mail.xyz
    ```
 
 ### Test Passport Creation
 
 ```bash
 # Create passport
-curl -X POST https://agentpass.kdnx.cloud/passports \
+curl -X POST https://api.agentpass.space/passports \
   -H "Content-Type: application/json" \
   -d '{
     "public_key": "ed25519:MCowBQYDK2VwAyEA...",
@@ -292,7 +293,7 @@ curl -X POST https://agentpass.kdnx.cloud/passports \
   }'
 
 # Verify passport
-curl -X POST https://agentpass.kdnx.cloud/verify \
+curl -X POST https://api.agentpass.space/verify \
   -H "Content-Type: application/json" \
   -d '{
     "passport_id": "ap_...",
@@ -350,10 +351,11 @@ MX      @       route2.mx.cloudflare.net (Priority 20)
 TXT     @       v=spf1 include:_spf.mx.cloudflare.net ~all
 ```
 
-### agentpass.kdnx.cloud
+### agentpass.space
 ```
 Type    Name              Content
-A       agentpass         <your-server-ip>
+A       @                 <landing-page-hosting-ip>
+A       api               <your-api-server-ip>
 CNAME   dashboard         <vercel-domain>
 CNAME   email             agentpass-email-worker.<subdomain>.workers.dev
 ```
@@ -371,7 +373,7 @@ CNAME   email             agentpass-email-worker.<subdomain>.workers.dev
 ### Webhook not working
 1. Verify `WEBHOOK_SECRET` matches
 2. Check API server is publicly accessible
-3. Test webhook manually: `curl -X POST https://agentpass.kdnx.cloud/webhook/email-received ...`
+3. Test webhook manually: `curl -X POST https://api.agentpass.space/webhook/email-received ...`
 4. Check API server logs
 
 ### Worker deployment fails

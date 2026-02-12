@@ -64,32 +64,38 @@ function Hero() {
     <section className="relative overflow-hidden bg-gray-950 pt-32 pb-20 sm:pt-40 sm:pb-28">
       {/* Background gradient */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
-        <div className="absolute top-20 right-1/4 h-[400px] w-[600px] rounded-full bg-cyan-500/5 blur-3xl" />
+        <div className="absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
+        <div className="absolute top-20 right-1/4 h-[400px] w-[600px] rounded-full bg-cyan-500/10 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute bottom-0 left-1/4 h-[300px] w-[500px] rounded-full bg-indigo-500/10 blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 mb-8">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          Auth0 for AI Agents
+        </div>
+
         <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
           Give Your AI Agents a{" "}
-          <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">
             Passport to the Internet
           </span>
         </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-400 sm:text-xl">
-          AgentPass is the identity layer for autonomous AI agents. One passport
-          — any service. Instant authentication, encrypted credentials, full
-          owner control.
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-300 sm:text-xl">
+          The cryptographic identity layer for autonomous AI agents. One passport, any service. Instant authentication, encrypted credentials, full owner control.
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
-            href="#quick-start"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-emerald-400"
+            href="https://github.com/romirom11/AgentPass"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-105"
           >
-            Create Your First Agent
+            View on GitHub
             <svg
-              className="h-4 w-4"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={2}
@@ -104,16 +110,32 @@ function Hero() {
           </a>
           <a
             href="#quick-start"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-700 px-6 py-3 text-base font-medium text-gray-300 transition-colors hover:border-gray-500 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-gray-700 bg-gray-800/50 backdrop-blur-sm px-8 py-4 text-base font-semibold text-gray-200 transition-all hover:border-gray-500 hover:bg-gray-800 hover:text-white"
           >
-            Explore the Docs
+            Quick Start
           </a>
         </div>
 
-        <p className="mt-10 text-sm text-gray-500">
-          Ed25519 cryptography &middot; AES-256-GCM encryption &middot; Open
-          source
-        </p>
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+            Ed25519 cryptography
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            AES-256-GCM encryption
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            </svg>
+            Open source
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -124,17 +146,22 @@ function Problem() {
     <section className="bg-gray-900 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300 mb-6">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
             The Problem
+          </div>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            AI Agents Can't Access the Internet
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-gray-400">
-            AI agents need to authenticate on services but have no identity.
+          <p className="mt-6 text-lg leading-relaxed text-gray-300">
+            AI agents need to authenticate on services but have <span className="text-white font-semibold">no identity</span>.
             They can't sign up for accounts, verify email addresses, handle
-            CAPTCHAs, or manage passwords. Every agent reinvents the wheel —
-            fragile browser scripts, hardcoded credentials, zero security.
+            CAPTCHAs, or manage passwords. Every agent reinvents the wheel — fragile browser scripts, hardcoded credentials, zero security.
           </p>
-          <p className="mt-4 text-lg leading-relaxed text-gray-400">
-            Meanwhile, owners have no visibility into what their agents are
+          <p className="mt-4 text-lg leading-relaxed text-gray-300">
+            Meanwhile, owners have <span className="text-white font-semibold">no visibility</span> into what their agents are
             doing. No audit trail. No way to revoke access. No control.
           </p>
         </div>
@@ -180,9 +207,9 @@ function Problem() {
           ].map((item) => (
             <div
               key={item.title}
-              className="rounded-xl border border-gray-700 bg-gray-800/50 p-6"
+              className="rounded-xl border border-gray-700 bg-gray-800/50 p-6 hover:border-red-500/50 transition-colors group"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
                 <svg
                   className="h-5 w-5 text-red-400"
                   fill="none"
@@ -194,9 +221,191 @@ function Problem() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm text-gray-400">{item.description}</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">{item.description}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CodeExample() {
+  return (
+    <section className="bg-gray-950 py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center mb-16">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            Simple for Agents, Powerful for Owners
+          </h2>
+          <p className="mt-4 text-lg text-gray-400">
+            One function call to authenticate anywhere. Real code from AgentPass MCP tools.
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Agent perspective */}
+          <div>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white">Agent Usage</h3>
+            </div>
+
+            <div className="rounded-xl border border-gray-700 bg-gray-800/80 backdrop-blur p-6 shadow-xl">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-red-500/60" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+                <div className="h-3 w-3 rounded-full bg-green-500/60" />
+                <span className="ml-2 text-xs text-gray-500">agent.py</span>
+              </div>
+              <pre className="overflow-x-auto text-sm leading-relaxed">
+                <code>
+                  <span className="text-purple-400">from</span>
+                  <span className="text-gray-300"> mcp </span>
+                  <span className="text-purple-400">import</span>
+                  <span className="text-gray-300"> AgentPassClient</span>
+                  {"\n\n"}
+                  <span className="text-gray-500">{"# Create agent identity"}</span>
+                  {"\n"}
+                  <span className="text-white">passport</span>
+                  <span className="text-gray-300"> = </span>
+                  <span className="text-purple-400">await</span>
+                  <span className="text-gray-300"> client.</span>
+                  <span className="text-yellow-300">create_identity</span>
+                  <span className="text-gray-300">(</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">agent_name</span>
+                  <span className="text-gray-300">=</span>
+                  <span className="text-emerald-300">"research-assistant"</span>
+                  {"\n"}
+                  <span className="text-gray-300">)</span>
+                  {"\n\n"}
+                  <span className="text-gray-500">{"# Authenticate on any service"}</span>
+                  {"\n"}
+                  <span className="text-white">session</span>
+                  <span className="text-gray-300"> = </span>
+                  <span className="text-purple-400">await</span>
+                  <span className="text-gray-300"> client.</span>
+                  <span className="text-yellow-300">authenticate</span>
+                  <span className="text-gray-300">(</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">identity_id</span>
+                  <span className="text-gray-300">=</span>
+                  <span className="text-white">passport</span>
+                  <span className="text-gray-300">.</span>
+                  <span className="text-white">id</span>
+                  <span className="text-gray-300">,</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">service_url</span>
+                  <span className="text-gray-300">=</span>
+                  <span className="text-emerald-300">"github.com"</span>
+                  {"\n"}
+                  <span className="text-gray-300">)</span>
+                  {"\n\n"}
+                  <span className="text-gray-500">{"# Done! Credentials stored,"}</span>
+                  {"\n"}
+                  <span className="text-gray-500">{"# session active, owner notified."}</span>
+                </code>
+              </pre>
+            </div>
+          </div>
+
+          {/* Service perspective */}
+          <div>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <svg className="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white">Service Integration</h3>
+            </div>
+
+            <div className="rounded-xl border border-gray-700 bg-gray-800/80 backdrop-blur p-6 shadow-xl">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-red-500/60" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+                <div className="h-3 w-3 rounded-full bg-green-500/60" />
+                <span className="ml-2 text-xs text-gray-500">server.ts</span>
+              </div>
+              <pre className="overflow-x-auto text-sm leading-relaxed">
+                <code>
+                  <span className="text-purple-400">import</span>
+                  <span className="text-gray-300"> {"{ AgentPass }"} </span>
+                  <span className="text-purple-400">from</span>
+                  <span className="text-emerald-300"> '@agentpass/sdk'</span>
+                  <span className="text-gray-500">;</span>
+                  {"\n\n"}
+                  <span className="text-purple-400">const</span>
+                  <span className="text-gray-300"> ap </span>
+                  <span className="text-purple-400">=</span>
+                  <span className="text-purple-400"> new</span>
+                  <span className="text-cyan-300"> AgentPass</span>
+                  <span className="text-gray-300">{"({"}</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">serviceId</span>
+                  <span className="text-gray-300">: </span>
+                  <span className="text-emerald-300">"your-service"</span>
+                  <span className="text-gray-300">,</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">apiKey</span>
+                  <span className="text-gray-300">: </span>
+                  <span className="text-white">process</span>
+                  <span className="text-gray-300">.</span>
+                  <span className="text-white">env</span>
+                  <span className="text-gray-300">.</span>
+                  <span className="text-white">AGENTPASS_KEY</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"});"}</span>
+                  {"\n\n"}
+                  <span className="text-gray-500">{"// Verify agent auth"}</span>
+                  {"\n"}
+                  <span className="text-purple-400">const</span>
+                  <span className="text-gray-300"> agent </span>
+                  <span className="text-purple-400">=</span>
+                  <span className="text-purple-400"> await</span>
+                  <span className="text-gray-300"> ap.</span>
+                  <span className="text-yellow-300">verify</span>
+                  <span className="text-gray-300">(</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-white">req</span>
+                  <span className="text-gray-300">.</span>
+                  <span className="text-white">headers</span>
+                  <span className="text-gray-300">.</span>
+                  <span className="text-white">authorization</span>
+                  {"\n"}
+                  <span className="text-gray-300">);</span>
+                  {"\n\n"}
+                  <span className="text-gray-500">{"// Check trust score"}</span>
+                  {"\n"}
+                  <span className="text-purple-400">if</span>
+                  <span className="text-gray-300"> (agent.</span>
+                  <span className="text-white">trustScore</span>
+                  <span className="text-gray-300"> {">"} </span>
+                  <span className="text-orange-300">80</span>
+                  <span className="text-gray-300">) {"{"}</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"  "}</span>
+                  <span className="text-purple-400">return</span>
+                  <span className="text-gray-300"> </span>
+                  <span className="text-yellow-300">grantAccess</span>
+                  <span className="text-gray-300">(agent);</span>
+                  {"\n"}
+                  <span className="text-gray-300">{"}"}</span>
+                </code>
+              </pre>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -247,7 +456,7 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="bg-gray-950 py-20 sm:py-28">
+    <section id="how-it-works" className="bg-gray-900 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
@@ -259,9 +468,12 @@ function HowItWorks() {
         </div>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
-          {steps.map((item) => (
+          {steps.map((item, idx) => (
             <div key={item.step} className="relative">
-              <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-8">
+              {idx < 2 && (
+                <div className="hidden lg:block absolute top-1/2 left-full w-8 h-0.5 bg-gradient-to-r from-emerald-500/50 to-transparent -translate-y-1/2" />
+              )}
+              <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-8 hover:border-emerald-500/50 transition-colors">
                 <span className="text-sm font-bold text-emerald-400">
                   {item.step}
                 </span>
@@ -293,84 +505,96 @@ function HowItWorks() {
 
 function ForServices() {
   return (
-    <section id="for-services" className="bg-gray-900 py-20 sm:py-28">
+    <section id="for-services" className="bg-gray-950 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300 mb-6">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+            </svg>
+            For Services
+          </div>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
             Add "Login with AgentPass" to Your Service
           </h2>
           <p className="mt-4 text-lg text-gray-400">
-            Three steps to let AI agents authenticate on your platform.
+            As simple as OAuth. Three steps to enable AI agent authentication.
           </p>
         </div>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-2">
           {/* Steps */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {[
               {
                 step: "1",
                 title: "Install the SDK",
                 code: "npm install @agentpass/sdk",
+                color: "cyan",
               },
               {
                 step: "2",
                 title: "Add Discovery Endpoint",
                 code: "GET /.well-known/agentpass.json",
+                color: "indigo",
               },
               {
                 step: "3",
                 title: "Verify Agent Signatures",
-                code: "agentpass.verify(challenge, signature)",
+                code: "await agentpass.verify(request)",
+                color: "emerald",
               },
             ].map((item) => (
-              <div key={item.step} className="flex gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-400">
+              <div key={item.step} className="flex gap-4 group">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-${item.color}-500/20 text-sm font-bold text-${item.color}-400 group-hover:bg-${item.color}-500/30 transition-colors`}>
                   {item.step}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-white">{item.title}</h3>
-                  <code className="mt-1 inline-block rounded bg-gray-800 px-2 py-1 text-sm text-cyan-300">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+                  <code className="block rounded-lg bg-gray-800/80 border border-gray-700 px-4 py-3 text-sm text-cyan-300 font-mono">
                     {item.code}
                   </code>
                 </div>
               </div>
             ))}
 
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              {[
-                "Instant agent onboarding",
-                "Trust score integration",
-                "Abuse reporting API",
-                "Zero friction for agents",
-              ].map((benefit) => (
-                <div key={benefit} className="flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 shrink-0 text-emerald-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4.5 12.75l6 6 9-13.5"
-                    />
-                  </svg>
-                  <span className="text-sm text-gray-400">{benefit}</span>
-                </div>
-              ))}
+            <div className="mt-8 pt-8 border-t border-gray-800">
+              <h4 className="text-sm font-semibold text-white mb-4">Benefits</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  "Instant agent onboarding",
+                  "Trust score integration",
+                  "Abuse reporting API",
+                  "Zero friction for agents",
+                ].map((benefit) => (
+                  <div key={benefit} className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 shrink-0 text-emerald-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.5 12.75l6 6 9-13.5"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-400">{benefit}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Code block */}
-          <div className="rounded-xl border border-gray-700 bg-gray-800 p-6">
+          <div className="rounded-xl border border-gray-700 bg-gray-800/80 backdrop-blur p-6 shadow-xl">
             <div className="mb-4 flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-red-500/60" />
               <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
               <div className="h-3 w-3 rounded-full bg-green-500/60" />
-              <span className="ml-2 text-xs text-gray-500">server.ts</span>
+              <span className="ml-2 text-xs text-gray-500">middleware.ts</span>
             </div>
             <pre className="overflow-x-auto text-sm leading-relaxed">
               <code>
@@ -398,12 +622,11 @@ function ForServices() {
                 <span className="text-gray-300">,</span>
                 {"\n"}
                 <span className="text-gray-300">{"  "}</span>
-                <span className="text-white">apiKey</span>
+                <span className="text-white">apiUrl</span>
                 <span className="text-gray-300">: </span>
                 <span className="text-emerald-300">
-                  {"process.env.AGENTPASS_KEY"}
+                  {"'https://api.agentpass.space'"}
                 </span>
-                <span className="text-gray-300">,</span>
                 {"\n"}
                 <span className="text-gray-300">{"});"}</span>
                 {"\n\n"}
@@ -411,35 +634,52 @@ function ForServices() {
                   {"// Verify agent identity"}
                 </span>
                 {"\n"}
+                <span className="text-purple-400">export</span>
+                <span className="text-gray-300"> </span>
+                <span className="text-purple-400">async</span>
+                <span className="text-gray-300"> </span>
+                <span className="text-purple-400">function</span>
+                <span className="text-gray-300"> </span>
+                <span className="text-yellow-300">authMiddleware</span>
+                <span className="text-gray-300">(req) {"{"}</span>
+                {"\n"}
+                <span className="text-gray-300">{"  "}</span>
                 <span className="text-purple-400">const</span>
                 <span className="text-gray-300"> agent </span>
                 <span className="text-purple-400">=</span>
                 <span className="text-purple-400"> await</span>
                 <span className="text-gray-300"> ap.</span>
                 <span className="text-yellow-300">verify</span>
-                <span className="text-gray-300">(</span>
-                {"\n"}
-                <span className="text-gray-300">{"  "}</span>
-                <span className="text-white">req.headers</span>
-                <span className="text-gray-300">.</span>
-                <span className="text-white">authorization</span>
-                {"\n"}
-                <span className="text-gray-300">);</span>
+                <span className="text-gray-300">(req);</span>
                 {"\n\n"}
+                <span className="text-gray-300">{"  "}</span>
                 <span className="text-gray-500">
-                  {"// Access trust score"}
+                  {"// Check trust score"}
                 </span>
                 {"\n"}
+                <span className="text-gray-300">{"  "}</span>
                 <span className="text-purple-400">if</span>
                 <span className="text-gray-300"> (agent.</span>
                 <span className="text-white">trustScore</span>
-                <span className="text-gray-300"> {">"} </span>
-                <span className="text-orange-300">0.8</span>
+                <span className="text-gray-300"> {"<"} </span>
+                <span className="text-orange-300">80</span>
                 <span className="text-gray-300">) {"{"}</span>
                 {"\n"}
+                <span className="text-gray-300">{"    "}</span>
+                <span className="text-purple-400">throw</span>
+                <span className="text-gray-300"> </span>
+                <span className="text-purple-400">new</span>
+                <span className="text-gray-300"> </span>
+                <span className="text-cyan-300">Error</span>
+                <span className="text-gray-300">(</span>
+                <span className="text-emerald-300">"Low trust"</span>
+                <span className="text-gray-300">);</span>
+                {"\n"}
+                <span className="text-gray-300">{"  }"}</span>
+                {"\n\n"}
                 <span className="text-gray-300">{"  "}</span>
-                <span className="text-yellow-300">grantAccess</span>
-                <span className="text-gray-300">(agent);</span>
+                <span className="text-purple-400">return</span>
+                <span className="text-gray-300"> agent;</span>
                 {"\n"}
                 <span className="text-gray-300">{"}"}</span>
               </code>
@@ -861,19 +1101,31 @@ function McpTools() {
 
 function QuickStart() {
   return (
-    <section id="quick-start" className="bg-gray-900 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="quick-start" className="relative bg-gray-900 py-20 sm:py-28 overflow-hidden">
+      {/* Background decoration */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute bottom-0 left-1/4 h-[300px] w-[500px] rounded-full bg-emerald-500/5 blur-3xl" />
+        <div className="absolute top-0 right-1/4 h-[300px] w-[500px] rounded-full bg-cyan-500/5 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 mb-6">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            Quick Start
+          </div>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
-            Get Started in 60 Seconds
+            Get Started in Under 60 Seconds
           </h2>
           <p className="mt-4 text-lg text-gray-400">
-            Clone, install, run. Your first agent passport in under a minute.
+            Clone, install, run. Your first agent passport ready in under a minute.
           </p>
         </div>
 
         <div className="mx-auto mt-12 max-w-2xl">
-          <div className="rounded-xl border border-gray-700 bg-gray-800 p-6">
+          <div className="rounded-xl border border-gray-700 bg-gray-800/80 backdrop-blur p-6 shadow-2xl">
             <div className="mb-4 flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-red-500/60" />
               <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
@@ -882,17 +1134,22 @@ function QuickStart() {
             </div>
             <pre className="overflow-x-auto text-sm leading-loose">
               <code>
-                <span className="text-gray-500">{"# Clone the repo"}</span>
+                <span className="text-gray-500">{"# Clone the repository"}</span>
                 {"\n"}
                 <span className="text-emerald-400">$</span>
                 <span className="text-gray-300">
-                  {" git clone https://github.com/agentpass/agentpass"}
+                  {" git clone https://github.com/romirom11/AgentPass"}
                 </span>
                 {"\n"}
                 <span className="text-emerald-400">$</span>
                 <span className="text-gray-300">
-                  {" cd agentpass && pnpm install"}
+                  {" cd AgentPass"}
                 </span>
+                {"\n\n"}
+                <span className="text-gray-500">{"# Install dependencies"}</span>
+                {"\n"}
+                <span className="text-emerald-400">$</span>
+                <span className="text-gray-300">{" pnpm install"}</span>
                 {"\n\n"}
                 <span className="text-gray-500">{"# Build all packages"}</span>
                 {"\n"}
@@ -900,15 +1157,44 @@ function QuickStart() {
                 <span className="text-gray-300">{" pnpm build"}</span>
                 {"\n\n"}
                 <span className="text-gray-500">
-                  {"# Run the demo agent"}
+                  {"# Start the MCP server"}
                 </span>
                 {"\n"}
                 <span className="text-emerald-400">$</span>
                 <span className="text-gray-300">
-                  {" node packages/mcp-server/dist/cli.js demo"}
+                  {" node packages/mcp-server/dist/index.js"}
+                </span>
+                {"\n\n"}
+                <span className="text-gray-500">
+                  {"# 🎉 Agent can now create passports!"}
                 </span>
               </code>
             </pre>
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <a
+              href="https://github.com/romirom11/AgentPass"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-105"
+            >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+              </svg>
+              Star on GitHub
+            </a>
+            <a
+              href="https://github.com/romirom11/AgentPass#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-gray-700 bg-gray-800/50 backdrop-blur-sm px-6 py-3 text-sm font-semibold text-gray-200 transition-all hover:border-gray-500 hover:bg-gray-800 hover:text-white"
+            >
+              Read the Docs
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
           </div>
         </div>
       </div>
@@ -942,37 +1228,48 @@ function Footer() {
 
           <nav className="flex flex-wrap items-center justify-center gap-6">
             <a
-              href="https://github.com/agentpass/agentpass"
-              className="text-sm text-gray-400 transition-colors hover:text-white"
+              href="https://github.com/romirom11/AgentPass"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-gray-400 transition-colors hover:text-white flex items-center gap-1"
             >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+              </svg>
               GitHub
             </a>
             <a
               href="#quick-start"
               className="text-sm text-gray-400 transition-colors hover:text-white"
             >
-              Docs
+              Quick Start
+            </a>
+            <a
+              href="#how-it-works"
+              className="text-sm text-gray-400 transition-colors hover:text-white"
+            >
+              Documentation
             </a>
             <a
               href="#for-services"
               className="text-sm text-gray-400 transition-colors hover:text-white"
             >
-              API Reference
-            </a>
-            <a
-              href="#for-services"
-              className="text-sm text-gray-400 transition-colors hover:text-white"
-            >
-              SDK Guide
+              SDK
             </a>
           </nav>
         </div>
 
         <div className="mt-8 border-t border-gray-800 pt-8 text-center">
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10">
+            <svg className="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+            <span className="text-sm text-indigo-300">Built for Anthropic Build-a-thon 2025</span>
+          </div>
           <p className="text-xs text-gray-500">
-            Built with Ed25519, Hono, React, and TypeScript
+            Built with Ed25519, Hono, Playwright, React, and TypeScript
           </p>
-          <p className="mt-2 text-xs text-gray-600">MIT License</p>
+          <p className="mt-2 text-xs text-gray-600">MIT License &copy; 2025</p>
         </div>
       </div>
     </footer>
@@ -987,6 +1284,7 @@ export default function App() {
         <Hero />
         <Problem />
         <HowItWorks />
+        <CodeExample />
         <ForServices />
         <ForOwners />
         <Architecture />

@@ -15,7 +15,10 @@ import { createVerifyRouter } from "./routes/verify.js";
 import { createAuditRouter } from "./routes/audit.js";
 import { createTrustRouter } from "./routes/trust.js";
 import { createWebhookRouter } from "./routes/webhooks.js";
+import { createTelegramRouter } from "./routes/telegram.js";
 import { createHealthRouter } from "./middleware/health.js";
+import { rateLimiters } from "./middleware/rate-limiter.js";
+import { requestLogger } from "./middleware/request-logging.js";
 
 const PORT = parseInt(process.env.AGENTPASS_PORT || "3846", 10);
 const DB_PATH = process.env.AGENTPASS_DB_PATH || "agentpass.db";
@@ -30,7 +33,21 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
   const app = new Hono();
 
   // --- Global middleware ---
-  app.use("*", cors());
+  // Request logging (must be first to capture all requests)
+  app.use("*", requestLogger());
+
+  // CORS with restricted origins
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim())
+    || ['http://localhost:3847', 'http://localhost:3849', 'http://localhost:5173'];
+
+  app.use("*", cors({
+    origin: allowedOrigins,
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'X-Webhook-Secret', 'X-AgentPass-ID', 'X-AgentPass-Signature', 'X-Request-ID'],
+  }));
+
+  // Apply default rate limiting to all routes
+  app.use("*", rateLimiters.default);
 
   // --- Well-known discovery endpoint ---
   app.get("/.well-known/agentpass.json", (c) => {
@@ -43,6 +60,7 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
         verify: "/verify",
         audit: "/passports/:id/audit",
         webhook: "/webhook/email-received",
+        telegram: "/telegram/link/:email",
       },
       capabilities: ["ed25519-verification", "trust-scoring", "audit-logging"],
     });
@@ -54,6 +72,7 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
   const auditRouter = createAuditRouter(db);
   const trustRouter = createTrustRouter(db);
   const webhookRouter = createWebhookRouter(db);
+  const telegramRouter = createTelegramRouter();
   const healthRouter = createHealthRouter(db);
 
   app.route("/", healthRouter);
@@ -66,6 +85,8 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
   app.route("/passports", trustRouter);
   // Webhook routes for external services (email worker, etc.)
   app.route("/webhook", webhookRouter);
+  // Telegram routes for bot webhooks and account linking
+  app.route("/telegram", telegramRouter);
 
   // --- Global error handler ---
   app.onError((err, c) => {

@@ -79,7 +79,7 @@ export class CaptchaService {
         {
           type: "solve",
           label: "Solve CAPTCHA",
-          url: `https://dash.agentpass.dev/solve/${escalationId}`,
+          url: `https://dashboard.agentpass.space/solve/${escalationId}`,
         },
       ],
     );

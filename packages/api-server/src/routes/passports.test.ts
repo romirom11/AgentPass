@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { Client } from "@libsql/client";
 import type { Hono } from "hono";
 import { createApp } from "../index.js";
+import { generateKeyPair, sign } from "@agentpass/core";
 
 describe("Passport routes", () => {
   let app: Hono;
@@ -134,11 +135,17 @@ describe("Passport routes", () => {
 
   describe("DELETE /passports/:id", () => {
     it("revokes an active passport", async () => {
-      const createRes = await registerPassport();
+      // Generate a real key pair for signature verification
+      const keys = generateKeyPair();
+      const createRes = await registerPassport({ public_key: keys.publicKey });
       const { passport_id } = await createRes.json();
+
+      // Sign the passport ID with the private key
+      const signature = sign(passport_id, keys.privateKey);
 
       const res = await app.request(`/passports/${passport_id}`, {
         method: "DELETE",
+        headers: { "X-AgentPass-Signature": signature },
       });
       expect(res.status).toBe(200);
 
@@ -154,9 +161,46 @@ describe("Passport routes", () => {
       expect(row.status).toBe("revoked");
     });
 
-    it("returns 404 for non-existent passport", async () => {
-      const res = await app.request("/passports/ap_000000000000", {
+    it("returns 401 when signature is missing", async () => {
+      const createRes = await registerPassport();
+      const { passport_id } = await createRes.json();
+
+      const res = await app.request(`/passports/${passport_id}`, {
         method: "DELETE",
+      });
+      expect(res.status).toBe(401);
+
+      const data = await res.json();
+      expect(data.code).toBe("AUTH_REQUIRED");
+    });
+
+    it("returns 403 for invalid signature", async () => {
+      const keys = generateKeyPair();
+      const wrongKeys = generateKeyPair();
+      const createRes = await registerPassport({ public_key: keys.publicKey });
+      const { passport_id } = await createRes.json();
+
+      // Sign with wrong key
+      const signature = sign(passport_id, wrongKeys.privateKey);
+
+      const res = await app.request(`/passports/${passport_id}`, {
+        method: "DELETE",
+        headers: { "X-AgentPass-Signature": signature },
+      });
+      expect(res.status).toBe(403);
+
+      const data = await res.json();
+      expect(data.code).toBe("AUTH_FAILED");
+    });
+
+    it("returns 404 for non-existent passport", async () => {
+      const keys = generateKeyPair();
+      const fakeId = "ap_000000000000";
+      const signature = sign(fakeId, keys.privateKey);
+
+      const res = await app.request(`/passports/${fakeId}`, {
+        method: "DELETE",
+        headers: { "X-AgentPass-Signature": signature },
       });
       expect(res.status).toBe(404);
 
@@ -165,15 +209,22 @@ describe("Passport routes", () => {
     });
 
     it("returns 409 if passport is already revoked", async () => {
-      const createRes = await registerPassport();
+      const keys = generateKeyPair();
+      const createRes = await registerPassport({ public_key: keys.publicKey });
       const { passport_id } = await createRes.json();
 
       // Revoke once
-      await app.request(`/passports/${passport_id}`, { method: "DELETE" });
+      const signature1 = sign(passport_id, keys.privateKey);
+      await app.request(`/passports/${passport_id}`, {
+        method: "DELETE",
+        headers: { "X-AgentPass-Signature": signature1 },
+      });
 
       // Revoke again
+      const signature2 = sign(passport_id, keys.privateKey);
       const res = await app.request(`/passports/${passport_id}`, {
         method: "DELETE",
+        headers: { "X-AgentPass-Signature": signature2 },
       });
       expect(res.status).toBe(409);
 

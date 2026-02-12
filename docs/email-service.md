@@ -52,7 +52,7 @@ Cloudflare Email Routing
   └─→ Webhook notification
        │
        ↓
-🌐 API Server (agentpass.kdnx.cloud)
+🌐 API Server (api.agentpass.space)
   │
   ├─→ Store notification in SQLite
   │   └─ email_notifications table
@@ -302,7 +302,7 @@ Instead of polling, push notifications:
 
 ```typescript
 // MCP Server establishes WebSocket
-const ws = new WebSocket('wss://agentpass.kdnx.cloud/ws');
+const ws = new WebSocket('wss://api.agentpass.space/ws');
 
 // API Server pushes on email arrival
 ws.on('email.received', (notification) => {
@@ -348,7 +348,7 @@ Future: parse and store attachments (PDFs, images)
 2. Check API server reachable from Cloudflare
 3. Test manually:
    ```bash
-   curl -X POST https://agentpass.kdnx.cloud/webhook/email-received \
+   curl -X POST https://api.agentpass.space/webhook/email-received \
      -H "X-Webhook-Secret: your-secret" \
      -d '{"email_id":"test","to":"test@agent-mail.xyz",...}'
    ```
@@ -357,7 +357,7 @@ Future: parse and store attachments (PDFs, images)
 
 1. Check polling endpoint:
    ```bash
-   curl https://agentpass.kdnx.cloud/webhook/email-notifications/my-agent@agent-mail.xyz
+   curl https://api.agentpass.space/webhook/email-notifications/my-agent@agent-mail.xyz
    ```
 2. Verify notifications in database
 3. Check MCP server logs

@@ -10,27 +10,27 @@ describe("SmsService", () => {
   });
 
   describe("getPhoneNumber", () => {
-    it("should return a phone number in +1555XXXXXXX format", () => {
-      const number = service.getPhoneNumber("passport-001");
+    it("should return a phone number in +1555XXXXXXX format", async () => {
+      const number = await service.getPhoneNumber("passport-001");
       expect(number).toMatch(/^\+1555\d{7}$/);
     });
 
-    it("should return the same number for the same passport", () => {
-      const first = service.getPhoneNumber("passport-001");
-      const second = service.getPhoneNumber("passport-001");
+    it("should return the same number for the same passport", async () => {
+      const first = await service.getPhoneNumber("passport-001");
+      const second = await service.getPhoneNumber("passport-001");
       expect(first).toBe(second);
     });
 
-    it("should return different numbers for different passports", () => {
-      const a = service.getPhoneNumber("passport-001");
-      const b = service.getPhoneNumber("passport-002");
+    it("should return different numbers for different passports", async () => {
+      const a = await service.getPhoneNumber("passport-001");
+      const b = await service.getPhoneNumber("passport-002");
       expect(a).not.toBe(b);
     });
   });
 
   describe("addSms + listSms", () => {
-    it("should store and retrieve an SMS", () => {
-      const phone = service.getPhoneNumber("passport-001");
+    it("should store and retrieve an SMS", async () => {
+      const phone = await service.getPhoneNumber("passport-001");
 
       service.addSms({
         id: "sms-001",
@@ -46,8 +46,8 @@ describe("SmsService", () => {
       expect(messages[0]!.body).toBe("Your code is 123456");
     });
 
-    it("should store multiple SMS for the same number", () => {
-      const phone = service.getPhoneNumber("passport-001");
+    it("should store multiple SMS for the same number", async () => {
+      const phone = await service.getPhoneNumber("passport-001");
 
       service.addSms({
         id: "sms-001",
@@ -90,7 +90,7 @@ describe("SmsService", () => {
 
   describe("waitForSms", () => {
     it("should resolve immediately if SMS already exists", async () => {
-      const phone = service.getPhoneNumber("passport-001");
+      const phone = await service.getPhoneNumber("passport-001");
 
       service.addSms({
         id: "existing-sms",
@@ -105,7 +105,7 @@ describe("SmsService", () => {
     });
 
     it("should resolve when SMS arrives within timeout", async () => {
-      const phone = service.getPhoneNumber("passport-002");
+      const phone = await service.getPhoneNumber("passport-002");
 
       setTimeout(() => {
         service.addSms({
@@ -117,22 +117,22 @@ describe("SmsService", () => {
         });
       }, 50);
 
-      const sms = await service.waitForSms(phone, 5000);
+      const sms = await service.waitForSms(phone, undefined, 5000);
       expect(sms.id).toBe("delayed-sms");
     });
 
     it("should reject on timeout if no SMS arrives", async () => {
-      const phone = service.getPhoneNumber("passport-003");
+      const phone = await service.getPhoneNumber("passport-003");
 
-      await expect(service.waitForSms(phone, 200)).rejects.toThrow(
+      await expect(service.waitForSms(phone, undefined, 200)).rejects.toThrow(
         "Timed out",
       );
     });
 
     it("should resolve multiple waiters in order", async () => {
-      const phone = service.getPhoneNumber("passport-004");
+      const phone = await service.getPhoneNumber("passport-004");
 
-      const promise1 = service.waitForSms(phone, 5000);
+      const promise1 = service.waitForSms(phone, undefined, 5000);
 
       // First SMS arrives
       setTimeout(() => {
@@ -151,6 +151,36 @@ describe("SmsService", () => {
   });
 
   describe("extractOtpFromSms", () => {
+    it("should extract OTP from 'Your code is 123456' pattern", () => {
+      expect(service.extractOtpFromSms("Your verification code is 123456")).toBe("123456");
+    });
+
+    it("should extract OTP from 'OTP: 7890' pattern", () => {
+      expect(service.extractOtpFromSms("Your OTP: 7890")).toBe("7890");
+    });
+
+    it("should extract OTP from 'pin is 5678' pattern", () => {
+      expect(service.extractOtpFromSms("Your pin is 5678")).toBe("5678");
+    });
+
+    it("should extract 4-digit code", () => {
+      expect(service.extractOtpFromSms("Use code: 4321 to log in")).toBe("4321");
+    });
+
+    it("should extract 8-digit code", () => {
+      expect(service.extractOtpFromSms("Your token is 12345678")).toBe("12345678");
+    });
+
+    it("should extract standalone numeric code from body", () => {
+      expect(service.extractOtpFromSms("935821 is your verification code")).toBe("935821");
+    });
+
+    it("should return null for messages with no OTP", () => {
+      expect(service.extractOtpFromSms("Welcome to our service! Enjoy.")).toBeNull();
+    });
+  });
+
+  describe("extractOtpFromSmsById (legacy)", () => {
     const addSmsWithBody = (id: string, body: string): SmsMessage => {
       const msg: SmsMessage = {
         id,
@@ -163,43 +193,13 @@ describe("SmsService", () => {
       return msg;
     };
 
-    it("should extract OTP from 'Your code is 123456' pattern", () => {
+    it("should extract OTP by message ID", () => {
       addSmsWithBody("otp-1", "Your verification code is 123456");
-      expect(service.extractOtpFromSms("otp-1")).toBe("123456");
+      expect(service.extractOtpFromSmsById("otp-1")).toBe("123456");
     });
 
-    it("should extract OTP from 'OTP: 7890' pattern", () => {
-      addSmsWithBody("otp-2", "Your OTP: 7890");
-      expect(service.extractOtpFromSms("otp-2")).toBe("7890");
-    });
-
-    it("should extract OTP from 'pin is 5678' pattern", () => {
-      addSmsWithBody("otp-3", "Your pin is 5678");
-      expect(service.extractOtpFromSms("otp-3")).toBe("5678");
-    });
-
-    it("should extract 4-digit code", () => {
-      addSmsWithBody("otp-4", "Use code: 4321 to log in");
-      expect(service.extractOtpFromSms("otp-4")).toBe("4321");
-    });
-
-    it("should extract 8-digit code", () => {
-      addSmsWithBody("otp-5", "Your token is 12345678");
-      expect(service.extractOtpFromSms("otp-5")).toBe("12345678");
-    });
-
-    it("should extract standalone numeric code from body", () => {
-      addSmsWithBody("otp-6", "935821 is your verification code");
-      expect(service.extractOtpFromSms("otp-6")).toBe("935821");
-    });
-
-    it("should return undefined for messages with no OTP", () => {
-      addSmsWithBody("no-otp", "Welcome to our service! Enjoy.");
-      expect(service.extractOtpFromSms("no-otp")).toBeUndefined();
-    });
-
-    it("should return undefined for unknown SMS ID", () => {
-      expect(service.extractOtpFromSms("nonexistent")).toBeUndefined();
+    it("should return null for unknown SMS ID", () => {
+      expect(service.extractOtpFromSmsById("nonexistent")).toBeNull();
     });
   });
 });

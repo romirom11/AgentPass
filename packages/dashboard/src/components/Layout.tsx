@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 const navigation = [
   { name: "Dashboard", path: "/", icon: LayoutDashboardIcon },
@@ -7,6 +8,14 @@ const navigation = [
   { name: "Approvals", path: "/approvals", icon: CheckCircleIcon },
   { name: "Settings", path: "/settings", icon: SettingsIcon },
 ];
+
+const pageTitles: Record<string, string> = {
+  "/": "Dashboard - AgentPass",
+  "/agents": "Agents - AgentPass",
+  "/activity": "Activity - AgentPass",
+  "/approvals": "Approvals - AgentPass",
+  "/settings": "Settings - AgentPass",
+};
 
 function LayoutDashboardIcon() {
   return (
@@ -104,10 +113,65 @@ function SettingsIcon() {
 }
 
 export default function Layout() {
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Update page title
+  useEffect(() => {
+    // Try to match exact path first, then try to match agent detail path
+    const exactTitle = pageTitles[location.pathname];
+    const agentDetailMatch = location.pathname.match(/^\/agents\/[^/]+$/);
+
+    if (exactTitle) {
+      document.title = exactTitle;
+    } else if (agentDetailMatch) {
+      document.title = "Agent Details - AgentPass";
+    } else {
+      document.title = "AgentPass";
+    }
+  }, [location.pathname]);
+
+  // Close mobile menu when navigating
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="fixed left-4 top-4 z-50 rounded-lg bg-gray-900 p-2 text-white lg:hidden"
+      >
+        <svg
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          {isMobileMenuOpen ? (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          ) : (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
+          )}
+        </svg>
+      </button>
+
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col bg-gray-900">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gray-900 transition-transform lg:static lg:translate-x-0 ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
@@ -157,11 +221,19 @@ export default function Layout() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-300">Owner</p>
-              <p className="text-xs text-gray-500">owner@agentpass.dev</p>
+              <p className="text-xs text-gray-500">owner@example.com</p>
             </div>
           </div>
         </div>
       </aside>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-gray-900/50 backdrop-blur-sm lg:hidden"
+        />
+      )}
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">

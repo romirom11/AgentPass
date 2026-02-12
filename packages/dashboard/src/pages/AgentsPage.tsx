@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import StatusBadge from "../components/StatusBadge.js";
 import TrustScoreBar from "../components/TrustScoreBar.js";
+import CreateAgentModal from "../components/CreateAgentModal.js";
 import { apiClient } from "../api/client.js";
 import { useApi } from "../hooks/useApi.js";
 
@@ -19,7 +21,12 @@ function formatTimeAgo(isoDate: string): string {
 }
 
 export default function AgentsPage() {
-  const { data: agents, loading, error } = useApi(() => apiClient.listPassports(), []);
+  const { data: agents, loading, error, refetch } = useApi(() => apiClient.listPassports(), []);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleAgentCreated = () => {
+    refetch();
+  };
 
   return (
     <div className="p-8">
@@ -31,7 +38,10 @@ export default function AgentsPage() {
             Manage your AI agent fleet
           </p>
         </div>
-        <button className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+        >
           + New Agent
         </button>
       </div>
@@ -74,7 +84,10 @@ export default function AgentsPage() {
             </div>
             <h3 className="text-sm font-semibold text-gray-900">No agents yet</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating your first agent passport.</p>
-            <button className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+            >
               + New Agent
             </button>
           </div>
@@ -148,6 +161,13 @@ export default function AgentsPage() {
           </table>
         </div>
       )}
+
+      {/* Create Agent Modal */}
+      <CreateAgentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleAgentCreated}
+      />
     </div>
   );
 }

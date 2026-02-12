@@ -342,7 +342,7 @@ The dashboard is a static SPA. Deploy to:
 Set `VITE_API_URL` to production API URL:
 
 ```env
-VITE_API_URL=https://api.agentpass.dev
+VITE_API_URL=https://api.agentpass.space
 ```
 
 ## Troubleshooting

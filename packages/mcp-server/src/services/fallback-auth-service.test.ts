@@ -36,9 +36,9 @@ function createMockBrowserOps(overrides?: {
     register: overrides?.register ?? vi.fn<BrowserOperations["register"]>().mockResolvedValue({
       success: true,
       credentials: {
-        username: "agent@agentpass.dev",
+        username: "agent@agent-mail.xyz",
         password: "generated-pw",
-        email: "agent@agentpass.dev",
+        email: "agent@agent-mail.xyz",
       },
     }),
   };
@@ -174,7 +174,7 @@ describe("FallbackAuthService", () => {
         service: "github.com",
         username: "bot-user",
         password: "s3cret",
-        email: "bot@agentpass.dev",
+        email: "bot@agent-mail.xyz",
       });
 
       const result = await service.authenticateOnService(
@@ -322,9 +322,9 @@ describe("FallbackAuthService", () => {
 
       await service.authenticateOnService(passportId, "https://github.com");
 
-      const stored = credentialService.getCredential(passportId, "github.com");
+      const stored = await credentialService.getCredential(passportId, "github.com");
       expect(stored).not.toBeNull();
-      expect(stored!.email).toBe("agent@agentpass.dev");
+      expect(stored!.email).toBe("agent@agent-mail.xyz");
     });
 
     it("should create a session after successful registration", async () => {
@@ -413,9 +413,9 @@ describe("FallbackAuthService", () => {
           success: true,
           needs_email_verification: true,
           credentials: {
-            username: "agent@agentpass.dev",
+            username: "agent@agent-mail.xyz",
             password: "pw",
-            email: "agent@agentpass.dev",
+            email: "agent@agent-mail.xyz",
           },
         });
 
@@ -426,7 +426,7 @@ describe("FallbackAuthService", () => {
       // Mock the email adapter to return a verification email
       const mockEmail = {
         id: "email-1",
-        to: "agent@agentpass.dev",
+        to: "agent@agent-mail.xyz",
         from: "noreply@github.com",
         subject: "Verify your email",
         text: "Click here: https://github.com/verify?token=abc",
@@ -691,9 +691,9 @@ describe("FallbackAuthService", () => {
         .mockResolvedValueOnce({
           success: true,
           credentials: {
-            username: "agent@agentpass.dev",
+            username: "agent@agent-mail.xyz",
             password: "pw",
-            email: "agent@agentpass.dev",
+            email: "agent@agent-mail.xyz",
           },
         });
 

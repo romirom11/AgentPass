@@ -8,9 +8,10 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
-import { generatePassportId } from "@agentpass/core";
+import { generatePassportId, verify } from "@agentpass/core";
 import type { Client } from "@libsql/client";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
+import { rateLimiters } from "../middleware/rate-limiter.js";
 
 // --- Zod schemas for request validation ---
 
@@ -94,7 +95,7 @@ export function createPassportsRouter(db: Client): Hono {
   });
 
   // POST /passports — register a new passport
-  router.post("/", zValidator(RegisterPassportSchema), async (c) => {
+  router.post("/", rateLimiters.createPassport, zValidator(RegisterPassportSchema), async (c) => {
     const body = getValidatedBody<RegisterPassportBody>(c);
     const passportId = generatePassportId();
     const now = new Date().toISOString();
@@ -138,20 +139,45 @@ export function createPassportsRouter(db: Client): Hono {
     });
   });
 
-  // DELETE /passports/:id — revoke a passport
+  // DELETE /passports/:id — revoke a passport (requires signature)
   router.delete("/:id", async (c) => {
     const id = c.req.param("id");
+    const signature = c.req.header("X-AgentPass-Signature");
 
+    // Require signature for revocation
+    if (!signature) {
+      return c.json(
+        { error: "Signature required for revocation", code: "AUTH_REQUIRED" },
+        401,
+      );
+    }
+
+    // Look up passport to get public key
     const result = await db.execute({
-      sql: "SELECT id, status FROM passports WHERE id = ?",
+      sql: "SELECT id, public_key, status FROM passports WHERE id = ?",
       args: [id],
     });
-    const row = result.rows[0] as unknown as Pick<PassportRow, "id" | "status"> | undefined;
+    const row = result.rows[0] as unknown as Pick<PassportRow, "id" | "public_key" | "status"> | undefined;
 
     if (!row) {
       return c.json(
         { error: "Passport not found", code: "NOT_FOUND" },
         404,
+      );
+    }
+
+    // Verify signature of passport ID using stored public key
+    let valid: boolean;
+    try {
+      valid = verify(id, signature, row.public_key);
+    } catch {
+      valid = false;
+    }
+
+    if (!valid) {
+      return c.json(
+        { error: "Invalid signature", code: "AUTH_FAILED" },
+        403,
       );
     }
 

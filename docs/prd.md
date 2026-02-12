@@ -54,7 +54,7 @@ AgentPass працює у двох режимах:
 
   "capabilities": {
     "email": {
-      "address": "kdn-sales-bot@agentpass.dev",
+      "address": "kdn-sales-bot@agent-mail.xyz",
       "can_send": true,
       "can_receive": true
     },
@@ -179,7 +179,7 @@ Owner (Roman) → AgentPass Dashboard або CLI:
    - Пару ключів Ed25519
    - Private key → зберігається ТІЛЬКИ локально на машині агента
    - Public key → реєструється на AgentPass API
-   - Email: kdn-sales-bot@agentpass.dev
+   - Email: kdn-sales-bot@agent-mail.xyz
    - Passport ID: ap_7xk2m9f3
 4. Owner отримує MCP config для підключення до Claude Code
 5. Owner налаштовує webhook URL для нотифікацій (Telegram, Slack, email)
@@ -276,7 +276,7 @@ AgentPass під капотом:
   b) Navigates to github.com/signup
   c) Шукає email signup форму (ігнорує OAuth кнопки "Login with Google")
   d) Заповнює форму:
-     - Email: kdn-sales-bot@agentpass.dev (з passport)
+     - Email: kdn-sales-bot@agent-mail.xyz (з passport)
      - Password: <генерує secure password>
      - Username: <генерує>
   e) Submit
@@ -296,7 +296,7 @@ AgentPass:
 Крок 5: Email verification
 ─────────────────────────
 AgentPass:
-  a) wait_for_email("kdn-sales-bot@agentpass.dev", subject: "GitHub")
+  a) wait_for_email("kdn-sales-bot@agent-mail.xyz", subject: "GitHub")
   b) Лист приходить через webhook (Cloudflare Email Workers)
   c) extract_verification_link(email)
   d) navigate(verification_link)
@@ -308,7 +308,7 @@ AgentPass → Credential Vault (локально): store({
   service: "github.com",
   username: "kdn-sales-bot-7x",
   password: "<encrypted>",
-  email: "kdn-sales-bot@agentpass.dev",
+  email: "kdn-sales-bot@agent-mail.xyz",
   cookies: [...],
   registered_at: "2026-02-11"
 })
@@ -563,12 +563,12 @@ agent.passport_revoked  — паспорт відкликано
     "service": "github.com",
     "captcha_type": "recaptcha_v2",
     "screenshot_url": "https://...",
-    "browser_session_url": "https://dashboard.agentpass.dev/session/abc123"
+    "browser_session_url": "https://dashboard.agentpass.space/session/abc123"
   },
   "timestamp": "2026-02-11T10:15:00Z",
   "actions": [
-    { "type": "solve_captcha", "url": "https://dashboard.agentpass.dev/captcha/abc123" },
-    { "type": "skip", "callback": "https://api.agentpass.dev/actions/skip/abc123" }
+    { "type": "solve_captcha", "url": "https://dashboard.agentpass.space/captcha/abc123" },
+    { "type": "skip", "callback": "https://api.agentpass.space/actions/skip/abc123" }
   ]
 }
 ```
@@ -763,7 +763,7 @@ app.post('/api/auth/agent', async (req, res) => {
 **3. Frontend widget:**
 
 ```html
-<script src="https://cdn.agentpass.dev/widget.js"></script>
+<script src="https://api.agentpass.space/widget.js"></script>
 
 <!-- Автоматично з'являється якщо сторінку відкрив агент -->
 <!-- Для людей — не показується -->
@@ -958,7 +958,7 @@ Agent починає реєстрацію заново з новим username.
       "result": "success",
       "duration_ms": 34500,
       "details": {
-        "email_used": "kdn-sales-bot@agentpass.dev",
+        "email_used": "kdn-sales-bot@agent-mail.xyz",
         "username_created": "kdn-sales-bot-7x"
       }
     },
@@ -1101,7 +1101,7 @@ server:
   port: 3847
   
 email:
-  domain: "agentpass.dev"  # або свій домен
+  domain: "agent-mail.xyz"  # або свій домен
   provider: "cloudflare"
 
 sms:

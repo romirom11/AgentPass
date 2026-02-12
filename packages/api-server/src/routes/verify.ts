@@ -10,6 +10,7 @@ import { z } from "zod";
 import { verifyChallenge } from "@agentpass/core";
 import type { Client } from "@libsql/client";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
+import { rateLimiters } from "../middleware/rate-limiter.js";
 
 // --- Zod schema for verification request ---
 
@@ -37,7 +38,7 @@ export function createVerifyRouter(db: Client): Hono {
   const router = new Hono();
 
   // POST /verify — verify passport signature
-  router.post("/", zValidator(VerifySchema), async (c) => {
+  router.post("/", rateLimiters.verifyPassport, zValidator(VerifySchema), async (c) => {
     const body = getValidatedBody<VerifyBody>(c);
 
     const result = await db.execute({

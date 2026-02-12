@@ -1,6 +1,7 @@
 # AgentPass API Reference
 
-Base URL: `http://localhost:3846` (default)
+**Production Base URL:** `https://api.agentpass.space`
+**Local Base URL:** `http://localhost:3846` (default)
 
 All endpoints accept and return JSON (`Content-Type: application/json`). CORS is enabled for all origins.
 
@@ -299,7 +300,7 @@ Append an audit log entry for a passport. Used by the MCP server to record agent
   "result": "success",
   "duration_ms": 34500,
   "details": {
-    "email_used": "my-agent@agentpass.dev",
+    "email_used": "my-agent@agent-mail.xyz",
     "username_created": "my-agent-7x"
   }
 }
@@ -363,7 +364,7 @@ List audit log entries for a passport with pagination. Entries are ordered by cr
       "result": "success",
       "duration_ms": 34500,
       "details": {
-        "email_used": "my-agent@agentpass.dev"
+        "email_used": "my-agent@agent-mail.xyz"
       },
       "created_at": "2026-02-11T10:15:00.000Z"
     }
@@ -379,6 +380,89 @@ List audit log entries for a passport with pagination. Entries are ordered by cr
 | Status | Code | Description |
 |--------|------|-------------|
 | 404 | `NOT_FOUND` | Passport does not exist |
+
+---
+
+## Webhooks
+
+### POST /webhook/email-received
+
+Called by the Cloudflare Email Worker when a new email arrives at an `@agent-mail.xyz` address. Stores a notification record for the MCP server to poll.
+
+**Headers:**
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-Webhook-Secret` | yes | Must match `WEBHOOK_SECRET` environment variable |
+| `Content-Type` | yes | Must be `application/json` |
+
+**Request body:**
+
+```json
+{
+  "email_id": "msg_7xk2m9f3abcd",
+  "to": "my-agent@agent-mail.xyz",
+  "from": "noreply@github.com",
+  "subject": "Verify your email address",
+  "received_at": "2026-02-12T10:00:00.000Z"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email_id` | string | yes | Unique email identifier from the worker |
+| `to` | string | yes | Recipient email address |
+| `from` | string | yes | Sender email address |
+| `subject` | string | no | Email subject line |
+| `received_at` | string | yes | ISO 8601 timestamp when email was received |
+
+**Response (200 OK):**
+
+```json
+{
+  "ok": true
+}
+```
+
+**Error responses:**
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 400 | `VALIDATION_ERROR` | Missing required fields |
+| 401 | `UNAUTHORIZED` | Invalid or missing webhook secret |
+
+---
+
+### GET /webhook/email-notifications/:address
+
+Poll for new email notifications for a specific agent email address. Returns all unprocessed notifications and marks them as retrieved.
+
+**Path parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `address` | Email address to check (e.g., `my-agent@agent-mail.xyz`) |
+
+**Response (200 OK):**
+
+```json
+{
+  "notifications": [
+    {
+      "email_id": "msg_7xk2m9f3abcd",
+      "recipient": "my-agent@agent-mail.xyz",
+      "sender": "noreply@github.com",
+      "subject": "Verify your email address",
+      "received_at": "2026-02-12T10:00:00.000Z",
+      "notified_at": "2026-02-12T10:00:01.000Z"
+    }
+  ]
+}
+```
+
+The `notifications` array will be empty if no new emails have arrived since the last poll. The endpoint automatically marks returned notifications as retrieved, so they will not appear in future polls.
+
+**Pagination:** Limited to 50 most recent notifications per call.
 
 ---
 

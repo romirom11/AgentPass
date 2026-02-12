@@ -5,7 +5,7 @@ Email infrastructure for AI agents via Cloudflare Email Workers.
 ## Overview
 
 This package provides:
-- **Cloudflare Email Worker** — receives all emails sent to `*@agentpass.dev`
+- **Cloudflare Email Worker** — receives all emails sent to `*@agent-mail.xyz`
 - **Durable Objects** — stores emails per mailbox
 - **HTTP API** — allows MCP server to retrieve emails
 - **Local EmailStore** — in-memory implementation for testing
@@ -15,9 +15,9 @@ This package provides:
 ```
 External service (GitHub, Twitter, etc.)
   │
-  │ sends email to agent@agentpass.dev
+  │ sends email to agent@agent-mail.xyz
   ↓
-Cloudflare Email Routing (catch-all: *@agentpass.dev)
+Cloudflare Email Routing (catch-all: *@agent-mail.xyz)
   │
   ↓
 Email Worker (worker.ts)
@@ -36,7 +36,7 @@ Email Worker (worker.ts)
 ### 1. Prerequisites
 
 - Cloudflare account with Workers enabled
-- Domain configured in Cloudflare DNS (e.g., `agentpass.dev`)
+- Domain configured in Cloudflare DNS (e.g., `agent-mail.xyz`)
 - Wrangler CLI: `npm install -g wrangler`
 
 ### 2. Configure Domain Email Routing
@@ -44,7 +44,7 @@ Email Worker (worker.ts)
 1. Go to Cloudflare Dashboard → Email → Email Routing
 2. Enable Email Routing for your domain
 3. Add a **Catch-All Address** rule:
-   - Pattern: `*@agentpass.dev`
+   - Pattern: `*@agent-mail.xyz`
    - Action: **Send to Worker**
    - Worker: `agentpass-email-worker` (you'll deploy this next)
 
@@ -65,7 +65,7 @@ cd packages/email-service
 
 # Set production API URL
 wrangler secret put API_SERVER_URL
-# Enter: https://api.agentpass.dev
+# Enter: https://api.agentpass.space
 
 # Set webhook secret
 wrangler secret put WEBHOOK_SECRET
@@ -111,7 +111,7 @@ Each agent gets a unique email address based on their name:
 import { generateEmailAddress } from '@agentpass/email-service';
 
 const email = generateEmailAddress('my-agent');
-// → "my-agent@agentpass.dev"
+// → "my-agent@agent-mail.xyz"
 ```
 
 ### Retrieving Emails (Production)
@@ -121,14 +121,14 @@ Use `CloudflareEmailClient` to retrieve emails from the worker:
 ```typescript
 import { CloudflareEmailClient } from '@agentpass/email-service';
 
-const client = new CloudflareEmailClient('https://email.agentpass.dev');
+const client = new CloudflareEmailClient('https://email.agentpass.space');
 
 // List all emails for an address
-const emails = await client.listEmails('my-agent@agentpass.dev');
+const emails = await client.listEmails('my-agent@agent-mail.xyz');
 
 // Wait for a specific email
 const email = await client.waitForEmail(
-  'my-agent@agentpass.dev',
+  'my-agent@agent-mail.xyz',
   { from: 'github.com', subject: 'Verify' },
   60_000 // 60 sec timeout
 );
@@ -154,7 +154,7 @@ const store = new EmailStore();
 // Simulate receiving an email
 store.addEmail({
   id: 'test-email-1',
-  to: 'my-agent@agentpass.dev',
+  to: 'my-agent@agent-mail.xyz',
   from: 'github@email.github.com',
   subject: 'Verify your email',
   body: 'Click here to verify: https://github.com/verify?token=abc123',
@@ -163,7 +163,7 @@ store.addEmail({
 
 // Agent waits for email
 const email = await store.waitForEmail(
-  'my-agent@agentpass.dev',
+  'my-agent@agent-mail.xyz',
   { subject: 'Verify' }
 );
 
@@ -175,7 +175,7 @@ const link = store.extractVerificationLink(email.id);
 
 ### Worker HTTP API
 
-**Base URL:** `https://email.agentpass.dev` (or your worker URL)
+**Base URL:** `https://email.agentpass.space` (or your worker URL)
 
 #### `GET /emails/:address`
 List all emails for an address.
@@ -185,7 +185,7 @@ List all emails for an address.
 [
   {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "to": "my-agent@agentpass.dev",
+    "to": "my-agent@agent-mail.xyz",
     "from": "github@email.github.com",
     "subject": "Verify your email",
     "body": "Click here...",
@@ -203,7 +203,7 @@ Delete an email.
 
 ### API Server Webhook
 
-**Base URL:** `https://api.agentpass.dev`
+**Base URL:** `https://api.agentpass.space`
 
 #### `POST /webhook/email-received`
 Called by Email Worker when new email arrives.
@@ -215,7 +215,7 @@ Called by Email Worker when new email arrives.
 ```json
 {
   "email_id": "550e8400-e29b-41d4-a716-446655440000",
-  "to": "my-agent@agentpass.dev",
+  "to": "my-agent@agent-mail.xyz",
   "from": "github@email.github.com",
   "subject": "Verify your email",
   "received_at": "2024-02-12T10:00:00Z"
@@ -231,7 +231,7 @@ Poll for new email notifications (used by MCP server).
   "notifications": [
     {
       "email_id": "550e8400-e29b-41d4-a716-446655440000",
-      "recipient": "my-agent@agentpass.dev",
+      "recipient": "my-agent@agent-mail.xyz",
       "sender": "github@email.github.com",
       "subject": "Verify your email",
       "received_at": "2024-02-12T10:00:00Z",
@@ -270,7 +270,7 @@ Use `curl` to simulate an incoming email:
 curl -X POST http://localhost:8787/test-email \
   -H "Content-Type: application/json" \
   -d '{
-    "to": "my-agent@agentpass.dev",
+    "to": "my-agent@agent-mail.xyz",
     "from": "test@example.com",
     "subject": "Test Email",
     "body": "This is a test email with verification link: https://example.com/verify?code=123456"
@@ -280,7 +280,7 @@ curl -X POST http://localhost:8787/test-email \
 ### 2. Retrieve Email
 
 ```bash
-curl http://localhost:8787/emails/my-agent@agentpass.dev
+curl http://localhost:8787/emails/my-agent@agent-mail.xyz
 ```
 
 ## Troubleshooting

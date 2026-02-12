@@ -57,7 +57,7 @@ export class AuthService {
     }
 
     // Step 2: Check for existing credentials
-    const credential = this.credentialService.getCredential(
+    const credential = await this.credentialService.getCredential(
       input.passport_id,
       serviceDomain,
     );
@@ -88,15 +88,15 @@ export class AuthService {
   /**
    * Check the authentication status for a service without triggering any action.
    */
-  checkAuthStatus(
+  async checkAuthStatus(
     passportId: string,
     serviceUrl: string,
-  ): {
+  ): Promise<{
     has_credentials: boolean;
     service: string;
-  } {
+  }> {
     const serviceDomain = this.extractDomain(serviceUrl);
-    const credential = this.credentialService.getCredential(
+    const credential = await this.credentialService.getCredential(
       passportId,
       serviceDomain,
     );

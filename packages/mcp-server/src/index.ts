@@ -14,8 +14,14 @@ import { CredentialService } from "./services/credential-service.js";
 import { AuthService } from "./services/auth-service.js";
 import { EmailServiceAdapter } from "./services/email-service-adapter.js";
 import { SmsService } from "./services/sms-service.js";
+import { TwilioSmsService } from "./services/twilio-sms-service.js";
+import type { SmsServiceInterface } from "./services/sms-service-interface.js";
+import { TelegramBotService } from "./services/telegram-bot.js";
+import { WebhookService } from "./services/webhook-service.js";
+import { ApprovalService } from "./services/approval-service.js";
 import { registerAllTools } from "./tools/index.js";
-import { CredentialVault, generateKeyPair } from "@agentpass/core";
+import { CredentialVault } from "@agentpass/core";
+import crypto from "node:crypto";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
@@ -28,7 +34,7 @@ const SERVER_VERSION = "0.1.0";
  *
  * The master key is stored in ~/.agentpass/master.key and is used to
  * derive encryption keys for the vault. If the key file doesn't exist,
- * a new key pair is generated and the private key is stored.
+ * a new 256-bit random key is generated for AES-256-GCM encryption.
  */
 function getOrCreateMasterKey(): string {
   const agentpassDir = path.join(os.homedir(), ".agentpass");
@@ -41,13 +47,11 @@ function getOrCreateMasterKey(): string {
   // Create directory if it doesn't exist
   fs.mkdirSync(agentpassDir, { recursive: true });
 
-  // Generate a new key pair
-  const keyPair = generateKeyPair();
+  // Generate a dedicated 256-bit encryption key (NOT a signing key)
+  const masterKey = crypto.randomBytes(32).toString("hex");
+  fs.writeFileSync(keyPath, masterKey, { mode: 0o600 });
 
-  // Store the private key (this is the master encryption key)
-  fs.writeFileSync(keyPath, keyPair.privateKey, { mode: 0o600 });
-
-  return keyPair.privateKey;
+  return masterKey;
 }
 
 /**
@@ -86,9 +90,18 @@ async function createServer(): Promise<McpServer> {
   await identityService.init(vault);
 
   const credentialService = new CredentialService();
+  credentialService.setVault(vault);
+  const webhookService = new WebhookService();
+  const approvalService = new ApprovalService(webhookService);
+
+  // Initialize Telegram bot with approval service
+  const telegramBot = new TelegramBotService({ approvalService });
+
   const authService = new AuthService(identityService, credentialService);
   const emailService = new EmailServiceAdapter();
-  const smsService = new SmsService();
+
+  // Initialize SMS service: use Twilio if credentials are available, otherwise mock
+  const smsService = createSmsService();
 
   registerAllTools(server, {
     identityService,
@@ -96,23 +109,64 @@ async function createServer(): Promise<McpServer> {
     authService,
     emailService,
     smsService,
+    telegramBot,
+    webhookService,
+    approvalService,
   });
 
+  // Graceful shutdown handler for Telegram bot and SMS service
+  const originalShutdown = async () => {
+    await telegramBot.stop();
+    if ("shutdown" in smsService && typeof smsService.shutdown === "function") {
+      smsService.shutdown();
+    }
+    await server.close();
+    process.exit(0);
+  };
+
+  // Update shutdown handlers
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
+  process.on("SIGINT", originalShutdown);
+  process.on("SIGTERM", originalShutdown);
+
   return server;
+}
+
+/**
+ * Create SMS service based on environment configuration.
+ *
+ * If TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are set, use TwilioSmsService.
+ * Otherwise, use mock SmsService for development.
+ */
+function createSmsService(): SmsServiceInterface {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const phoneNumbers = process.env.TWILIO_PHONE_NUMBERS;
+  const apiBaseUrl =
+    process.env.AGENTPASS_API_URL || "http://localhost:3846";
+
+  if (accountSid && authToken && phoneNumbers) {
+    console.log(
+      "[AgentPass MCP] Using Twilio SMS service (production mode)",
+    );
+    return new TwilioSmsService(
+      accountSid,
+      authToken,
+      phoneNumbers,
+      apiBaseUrl,
+    );
+  }
+
+  console.log(
+    "[AgentPass MCP] Using mock SMS service (development mode - set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBERS for production)",
+  );
+  return new SmsService();
 }
 
 async function main(): Promise<void> {
   const server = await createServer();
   const transport = new StdioServerTransport();
-
-  // Graceful shutdown on SIGINT / SIGTERM
-  const shutdown = async () => {
-    await server.close();
-    process.exit(0);
-  };
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
 
   await server.connect(transport);
 }

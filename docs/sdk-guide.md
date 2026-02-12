@@ -22,7 +22,7 @@ import { AgentPassClient, generateWellKnownConfig } from "@agentpass/sdk";
 
 // 1. Create a client pointing at the AgentPass API server
 const client = new AgentPassClient({
-  apiUrl: "https://api.agentpass.dev",
+  apiUrl: "https://api.agentpass.space",
 });
 
 // 2. Verify an agent's passport
@@ -162,7 +162,7 @@ The SDK provides a framework-agnostic verification function that reads `X-AgentP
 import { createVerificationMiddleware } from "@agentpass/sdk";
 
 const verify = createVerificationMiddleware({
-  apiUrl: "https://api.agentpass.dev",
+  apiUrl: "https://api.agentpass.space",
 });
 ```
 
@@ -185,7 +185,7 @@ import { createVerificationMiddleware } from "@agentpass/sdk";
 
 const app = express();
 const verifyAgent = createVerificationMiddleware({
-  apiUrl: "https://api.agentpass.dev",
+  apiUrl: "https://api.agentpass.space",
 });
 
 // Middleware that requires agent authentication
@@ -218,7 +218,7 @@ import { createVerificationMiddleware } from "@agentpass/sdk";
 
 const app = new Hono();
 const verifyAgent = createVerificationMiddleware({
-  apiUrl: "https://api.agentpass.dev",
+  apiUrl: "https://api.agentpass.space",
 });
 
 app.post("/api/auth/agent", async (c) => {

@@ -5,6 +5,7 @@ import {
   generateKeyPair,
   createChallenge,
   signChallenge,
+  sign,
 } from "@agentpass/core";
 import { createApp } from "../index.js";
 
@@ -112,8 +113,12 @@ describe("Verify routes", () => {
     it("returns 403 for a revoked passport", async () => {
       const { passport_id, keyPair } = await setupPassport();
 
-      // Revoke the passport
-      await app.request(`/passports/${passport_id}`, { method: "DELETE" });
+      // Revoke the passport (requires signature)
+      const revokeSignature = sign(passport_id, keyPair.privateKey);
+      await app.request(`/passports/${passport_id}`, {
+        method: "DELETE",
+        headers: { "X-AgentPass-Signature": revokeSignature },
+      });
 
       const challenge = createChallenge();
       const signature = signChallenge(challenge, keyPair.privateKey);

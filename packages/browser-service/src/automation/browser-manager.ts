@@ -70,15 +70,35 @@ export class BrowserManager {
   /**
    * Close the browser and release all resources.
    * Safe to call even if the browser was never launched.
+   * Ensures cleanup happens even if errors occur during closing.
    */
   async close(): Promise<void> {
+    const errors: Error[] = [];
+
     if (this.context) {
-      await this.context.close();
-      this.context = null;
+      try {
+        await this.context.close();
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        this.context = null;
+      }
     }
+
     if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
+      try {
+        await this.browser.close();
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        this.browser = null;
+      }
+    }
+
+    // If any errors occurred during cleanup, log them but don't throw
+    // (cleanup should be idempotent and safe)
+    if (errors.length > 0) {
+      console.warn('[BrowserManager] Errors during cleanup:', errors);
     }
   }
 

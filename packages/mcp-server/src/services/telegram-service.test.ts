@@ -67,12 +67,12 @@ describe("TelegramService", () => {
         "owner-001",
         "data-collector",
         "reCAPTCHA",
-        "https://screenshots.agentpass.dev/captcha/abc123.png",
+        "https://api.agentpass.space/captcha/abc123.png",
       );
 
       expect(notification.type).toBe("captcha_screenshot");
       expect(notification.image_url).toBe(
-        "https://screenshots.agentpass.dev/captcha/abc123.png",
+        "https://api.agentpass.space/captcha/abc123.png",
       );
       expect(notification.message).toContain("data-collector");
       expect(notification.message).toContain("reCAPTCHA");
@@ -125,7 +125,7 @@ describe("TelegramService", () => {
       );
 
       expect(notification.inline_buttons![0]!.callback_data).toContain(
-        "retry_login:",
+        "retry_login_",
       );
     });
 
@@ -205,7 +205,11 @@ describe("TelegramService", () => {
       );
 
       const approveData = notification.inline_buttons![0]!.callback_data;
-      const response = service.handleCallback(notification.id, approveData);
+      // Extract the notification ID from the callback_data (format: approve_tg_N)
+      // Split by '_' and join the parts after 'approve' to get 'tg_N'
+      const parts = approveData.split("_");
+      const notificationId = parts.slice(1).join("_");
+      const response = service.handleCallback(notificationId, approveData);
 
       expect(response).toBeDefined();
       expect(response!.notification_id).toBe(notification.id);
@@ -214,7 +218,7 @@ describe("TelegramService", () => {
     });
 
     it("should return undefined for unknown notification ID", () => {
-      const response = service.handleCallback("nonexistent", "approve:xxx");
+      const response = service.handleCallback("nonexistent", "approve_xxx");
       expect(response).toBeUndefined();
     });
 
@@ -228,8 +232,11 @@ describe("TelegramService", () => {
         "details",
       );
 
+      // Extract the notification ID from the first button's callback_data
+      const parts = notification.inline_buttons![0]!.callback_data.split("_");
+      const notificationId = parts.slice(1).join("_");
       const response = service.handleCallback(
-        notification.id,
+        notificationId,
         "invalid_callback",
       );
       expect(response).toBeUndefined();
@@ -246,9 +253,12 @@ describe("TelegramService", () => {
       );
 
       const denyData = notification.inline_buttons![1]!.callback_data;
-      service.handleCallback(notification.id, denyData);
+      // Extract the notification ID from the callback_data (format: deny_tg_N)
+      const parts = denyData.split("_");
+      const notificationId = parts.slice(1).join("_");
+      service.handleCallback(notificationId, denyData);
 
-      const stored = service.getCallbackResponse(notification.id);
+      const stored = service.getCallbackResponse(notificationId);
       expect(stored).toBeDefined();
       expect(stored!.callback_data).toBe(denyData);
     });

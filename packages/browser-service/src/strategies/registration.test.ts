@@ -208,8 +208,8 @@ describe('registerOnService', () => {
 
     expect(result.success).toBe(true);
     // Verify the correct selector was used for email
-    expect(page.click).toHaveBeenCalledWith('input[name="email"]');
-    expect(page.type).toHaveBeenCalledWith('input[name="email"]', 'agent@example.com');
+    expect(page.click).toHaveBeenCalledWith('input[name="email"]', { timeout: 10000 });
+    expect(page.type).toHaveBeenCalledWith('input[name="email"]', 'agent@example.com', { timeout: 10000 });
   });
 
   it('tries fallback password selectors when the first does not match', async () => {
@@ -233,7 +233,7 @@ describe('registerOnService', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(page.click).toHaveBeenCalledWith('input[name="password"]');
+    expect(page.click).toHaveBeenCalledWith('input[name="password"]', { timeout: 10000 });
   });
 
   it('tries text-based submit selectors when CSS selectors do not match', async () => {

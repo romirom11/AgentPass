@@ -25,7 +25,7 @@ A website or API that wants to support agent authentication, either natively (vi
 - System generates Ed25519 key pair
 - Private key stored only locally
 - Public key registered on AgentPass API
-- Agent gets a unique email address (e.g., `agent-name@agentpass.dev`)
+- Agent gets a unique email address (e.g., `agent-name@agent-mail.xyz`)
 - Passport ID is returned for configuration
 
 ### US-1.2: List My Agents

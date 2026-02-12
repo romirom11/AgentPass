@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.agentpass-api.rule=Host(`agentpass.kdnx.cloud`)"
+      - "traefik.http.routers.agentpass-api.rule=Host(`api.agentpass.space`)"
       - "traefik.http.routers.agentpass-api.entrypoints=websecure"
       - "traefik.http.routers.agentpass-api.tls=true"
       - "traefik.http.routers.agentpass-api.tls.certresolver=letsencrypt"

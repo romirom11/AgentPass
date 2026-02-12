@@ -127,11 +127,11 @@ describe('fillForm', () => {
     expect(page.click).toHaveBeenCalledTimes(2);
     expect(page.type).toHaveBeenCalledTimes(2);
 
-    expect(page.click).toHaveBeenNthCalledWith(1, '#email');
-    expect(page.type).toHaveBeenNthCalledWith(1, '#email', 'agent@example.com');
+    expect(page.click).toHaveBeenNthCalledWith(1, '#email', { timeout: 10_000 });
+    expect(page.type).toHaveBeenNthCalledWith(1, '#email', 'agent@example.com', { timeout: 10_000 });
 
-    expect(page.click).toHaveBeenNthCalledWith(2, '#password');
-    expect(page.type).toHaveBeenNthCalledWith(2, '#password', 's3cret!');
+    expect(page.click).toHaveBeenNthCalledWith(2, '#password', { timeout: 10_000 });
+    expect(page.type).toHaveBeenNthCalledWith(2, '#password', 's3cret!', { timeout: 10_000 });
   });
 
   it('handles an empty fields array without error', async () => {
@@ -178,7 +178,7 @@ describe('clickButton', () => {
 
     await clickButton(page, '#submit');
 
-    expect(page.click).toHaveBeenCalledWith('#submit');
+    expect(page.click).toHaveBeenCalledWith('#submit', { timeout: 10_000 });
     expect(page.waitForNavigation).toHaveBeenCalled();
   });
 
@@ -190,7 +190,7 @@ describe('clickButton', () => {
     // Should not throw
     await clickButton(page, '#submit');
 
-    expect(page.click).toHaveBeenCalledWith('#submit');
+    expect(page.click).toHaveBeenCalledWith('#submit', { timeout: 10_000 });
   });
 });
 

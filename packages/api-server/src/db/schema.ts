@@ -56,6 +56,22 @@ CREATE INDEX IF NOT EXISTS idx_email_notifications_recipient
   ON email_notifications(recipient, received_at DESC)
 `;
 
+const SMS_NOTIFICATIONS_TABLE = `
+CREATE TABLE IF NOT EXISTS sms_notifications (
+  sms_id       TEXT PRIMARY KEY,
+  phone_number TEXT NOT NULL,
+  sender       TEXT NOT NULL,
+  body         TEXT NOT NULL,
+  received_at  TEXT NOT NULL,
+  notified_at  TEXT NOT NULL,
+  retrieved_at TEXT
+)`;
+
+const SMS_NOTIFICATIONS_INDEX = `
+CREATE INDEX IF NOT EXISTS idx_sms_notifications_phone
+  ON sms_notifications(phone_number, received_at DESC)
+`;
+
 /**
  * Initialize the libsql database with schema tables.
  *
@@ -76,6 +92,8 @@ export async function initDatabase(dbPath: string): Promise<Client> {
   await db.execute(AUDIT_LOG_INDEX);
   await db.execute(EMAIL_NOTIFICATIONS_TABLE);
   await db.execute(EMAIL_NOTIFICATIONS_INDEX);
+  await db.execute(SMS_NOTIFICATIONS_TABLE);
+  await db.execute(SMS_NOTIFICATIONS_INDEX);
 
   return db;
 }

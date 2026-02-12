@@ -2,28 +2,29 @@
  * SMS verification service (in-memory mock implementation).
  *
  * Handles phone number provisioning and SMS reception for agent verification.
- * Real Twilio integration will replace the mock implementation later.
+ * Used for development and testing when Twilio credentials are not available.
  */
 
-export interface SmsMessage {
-  id: string;
-  to: string;
-  from: string;
-  body: string;
-  received_at: string;
-}
+import type {
+  SmsServiceInterface,
+  SmsMessage,
+  SmsFilter,
+} from "./sms-service-interface.js";
+
+// Re-export for backward compatibility
+export type { SmsMessage, SmsFilter } from "./sms-service-interface.js";
 
 /**
  * OTP extraction patterns, ordered from most specific to least specific.
  * Matches common formats: "code is 123456", "OTP: 7890", standalone 4-8 digits.
  */
-const OTP_PATTERNS: RegExp[] = [
+export const OTP_PATTERNS: RegExp[] = [
   /(?:code|otp|pin|token|password)\s*(?:is|:)\s*(\d{4,8})/i,
   /(\d{4,8})\s*(?:is your|is the)/i,
   /\b(\d{4,8})\b/,
 ];
 
-export class SmsService {
+export class SmsService implements SmsServiceInterface {
   /** phone number -> passport ID */
   private readonly phoneToPassport = new Map<string, string>();
   /** passport ID -> phone number */
@@ -50,7 +51,7 @@ export class SmsService {
    * Returns the same number on repeated calls with the same passport.
    * Format: +1555XXXXXXX
    */
-  getPhoneNumber(passportId: string): string {
+  async getPhoneNumber(passportId: string): Promise<string> {
     const existing = this.passportToPhone.get(passportId);
     if (existing) return existing;
 
@@ -62,6 +63,14 @@ export class SmsService {
     this.inbox.set(number, []);
 
     return number;
+  }
+
+  /**
+   * Release a phone number back to the pool.
+   * No-op for mock implementation since numbers are unlimited.
+   */
+  async releasePhoneNumber(_passportId: string): Promise<void> {
+    // No-op for mock
   }
 
   /**
@@ -92,16 +101,22 @@ export class SmsService {
    * Otherwise waits up to `timeout` ms for a new message.
    *
    * @param phoneNumber - The phone number to listen on
-   * @param timeout - Timeout in milliseconds (default: 30000)
+   * @param filter - Optional filter for sender, body content, or timestamp
+   * @param timeoutMs - Timeout in milliseconds (default: 30000)
    */
   async waitForSms(
     phoneNumber: string,
-    timeout = 30000,
+    filter?: SmsFilter,
+    timeoutMs = 30000,
   ): Promise<SmsMessage> {
     // Check for existing messages first
     const existing = this.inbox.get(phoneNumber);
     if (existing && existing.length > 0) {
-      return existing[existing.length - 1]!;
+      // Apply filter if provided
+      const filtered = this.filterMessages(existing, filter);
+      if (filtered.length > 0) {
+        return filtered[filtered.length - 1]!;
+      }
     }
 
     return new Promise<SmsMessage>((resolve, reject) => {
@@ -114,11 +129,14 @@ export class SmsService {
           if (waiters.length === 0) this.waiters.delete(phoneNumber);
         }
         reject(new Error(`Timed out waiting for SMS to ${phoneNumber}`));
-      }, timeout);
+      }, timeoutMs);
 
       const resolveWrapper = (msg: SmsMessage) => {
-        clearTimeout(timer);
-        resolve(msg);
+        // Check filter before resolving
+        if (this.matchesFilter(msg, filter)) {
+          clearTimeout(timer);
+          resolve(msg);
+        }
       };
 
       const waiters = this.waiters.get(phoneNumber) ?? [];
@@ -128,21 +146,55 @@ export class SmsService {
   }
 
   /**
+   * Filter messages based on criteria.
+   */
+  private filterMessages(
+    messages: SmsMessage[],
+    filter?: SmsFilter,
+  ): SmsMessage[] {
+    if (!filter) return messages;
+
+    return messages.filter((msg) => this.matchesFilter(msg, filter));
+  }
+
+  /**
+   * Check if a message matches the filter criteria.
+   */
+  private matchesFilter(msg: SmsMessage, filter?: SmsFilter): boolean {
+    if (!filter) return true;
+
+    if (filter.from && msg.from !== filter.from) return false;
+    if (filter.bodyContains && !msg.body.includes(filter.bodyContains))
+      return false;
+    if (filter.after && new Date(msg.received_at) <= filter.after) return false;
+
+    return true;
+  }
+
+  /**
    * Extract a 4-8 digit OTP code from an SMS body.
    *
    * Tries several common OTP patterns (e.g. "Your code is 123456", "OTP: 7890").
-   * Returns undefined if no code is found.
+   * Returns null if no code is found.
    */
-  extractOtpFromSms(smsId: string): string | undefined {
-    const message = this.messageById.get(smsId);
-    if (!message) return undefined;
-
+  extractOtpFromSms(smsBody: string): string | null {
     for (const pattern of OTP_PATTERNS) {
-      const match = message.body.match(pattern);
+      const match = smsBody.match(pattern);
       if (match?.[1]) return match[1];
     }
 
-    return undefined;
+    return null;
+  }
+
+  /**
+   * Legacy method: Extract OTP by message ID (for backward compatibility).
+   * @deprecated Use extractOtpFromSms(smsBody) instead.
+   */
+  extractOtpFromSmsById(smsId: string): string | null {
+    const message = this.messageById.get(smsId);
+    if (!message) return null;
+
+    return this.extractOtpFromSms(message.body);
   }
 
   /**

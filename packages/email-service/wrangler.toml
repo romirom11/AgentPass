@@ -17,14 +17,14 @@ new_sqlite_classes = ["EmailStorage"]
 
 # Environment variables
 [vars]
-API_SERVER_URL = "https://agentpass.kdnx.cloud"
+API_SERVER_URL = "https://api.agentpass.space"
 
 # Secrets (set via: wrangler secret put WEBHOOK_SECRET)
 # WEBHOOK_SECRET = "set-via-wrangler-secret-put"
 
 # Production environment
 [env.production]
-vars = { API_SERVER_URL = "https://agentpass.kdnx.cloud" }
+vars = { API_SERVER_URL = "https://api.agentpass.space" }
 
 [[env.production.durable_objects.bindings]]
 name = "EMAIL_STORAGE"

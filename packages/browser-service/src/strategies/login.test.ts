@@ -247,8 +247,8 @@ describe('loginToService', () => {
     const result = await loginToService(page, BASE_OPTIONS);
 
     expect(result.success).toBe(true);
-    expect(page.click).toHaveBeenCalledWith('input[name="email"]');
-    expect(page.type).toHaveBeenCalledWith('input[name="email"]', 'agent@example.com');
+    expect(page.click).toHaveBeenCalledWith('input[name="email"]', { timeout: 10000 });
+    expect(page.type).toHaveBeenCalledWith('input[name="email"]', 'agent@example.com', { timeout: 10000 });
   });
 
   it('uses text-based submit button fallback', async () => {

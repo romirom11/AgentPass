@@ -57,7 +57,7 @@ Playwright-based browser automation for fallback authentication.
 Cloudflare Email Workers for receiving and processing agent emails.
 
 **Responsibilities:**
-- Create email inboxes per agent (e.g., `agent-name@agentpass.dev`)
+- Create email inboxes per agent (e.g., `agent-name@agent-mail.xyz`)
 - Receive incoming emails via webhook
 - Parse verification links and OTP codes
 - Forward emails to MCP Server for processing

@@ -1,8 +1,36 @@
-# AgentPass -- The Identity Layer for Autonomous AI Agents
+# AgentPass — The Identity Layer for Autonomous AI Agents
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/Tests-523%20passing-success.svg)](https://github.com/romirom11/AgentPass)
 
 > **Give your AI agents a passport to the internet.**
 
-AgentPass is a passport system for AI agents. Each agent receives a cryptographically signed digital identity (Agent Passport) enabling it to authenticate on any internet service. AgentPass works in two modes: **Native** (service integrated AgentPass SDK for instant auth) and **Fallback** (agent registers as a human using passport infrastructure -- email, SMS, browser automation).
+The identity layer for autonomous AI agents. AgentPass provides cryptographically signed digital identities that enable AI agents to authenticate on any internet service — just like "Auth0 for AI Agents".
+
+## The Problem
+
+AI agents (Claude Code, OpenClaw, CrewAI, AutoGPT) are becoming increasingly autonomous, but they **cannot exist on the internet as independent entities**:
+
+- An agent cannot register on a website — it has no email address
+- An agent cannot pass SMS verification — it has no phone number
+- An agent cannot prove its identity — it has no cryptographic signature
+- An agent cannot log back in — it doesn't remember credentials
+- Services cannot distinguish legitimate agents from spam bots
+
+**Result:** Every time an agent encounters an auth flow, it stops and waits for a human. Autonomy is broken.
+
+**Authentication is the recognized #1 bottleneck in the AI agent ecosystem.**
+
+## The Solution
+
+**AgentPass** is a passport system for AI agents. Each agent receives a cryptographically signed digital identity (Agent Passport) enabling it to authenticate on any internet service.
+
+AgentPass works in two modes:
+
+1. **Native Mode** — Service has integrated the AgentPass SDK → agent authenticates instantly (like "Login with Google")
+2. **Fallback Mode** — Service not integrated → agent registers as a human using passport infrastructure (email, SMS, browser automation)
 
 **Positioning:** "Auth0 for AI Agents"
 
@@ -22,21 +50,70 @@ AgentPass is a passport system for AI agents. Each agent receives a cryptographi
 
 ## Quick Start
 
+### Prerequisites
+
+- Node.js >= 22.0.0
+- pnpm >= 10.0.0
+
+### Installation
+
 ```bash
-# Clone and install
+# Clone the repository
 git clone https://github.com/romirom11/AgentPass.git
 cd AgentPass
-pnpm install
 
-# Run all 523 tests
-pnpm test
+# Install dependencies
+pnpm install
 
 # Build all packages
 pnpm build
 
-# Run E2E demo
+# Run all 523 tests
+pnpm test
+```
+
+### Running the MCP Server
+
+The MCP Server is what AI agents (like Claude Code) connect to for identity management.
+
+```bash
+# Start the MCP server (stdio transport)
+node packages/mcp-server/dist/cli.js serve
+
+# Or run the E2E demo
 node packages/mcp-server/dist/cli.js demo
 
+# Print available tools
+node packages/mcp-server/dist/cli.js info
+
+# Generate Claude Code config
+node packages/mcp-server/dist/cli.js config
+```
+
+### Connecting to Claude Code
+
+Add AgentPass to your Claude Code MCP configuration (`~/.claude/settings.json` or `.claude/settings.local.json`):
+
+```json
+{
+  "mcpServers": {
+    "agentpass": {
+      "command": "node",
+      "args": ["/absolute/path/to/AgentPass/packages/mcp-server/dist/cli.js", "serve"]
+    }
+  }
+}
+```
+
+Or generate the config automatically:
+
+```bash
+node packages/mcp-server/dist/cli.js config
+```
+
+### Running Other Services
+
+```bash
 # Start API server (port 3846)
 pnpm --filter @agentpass/api-server dev
 
@@ -47,30 +124,44 @@ pnpm --filter @agentpass/dashboard dev
 pnpm --filter @agentpass/landing dev
 ```
 
-### Prerequisites
-
-- Node.js >= 22.0.0
-- pnpm >= 10.0.0
+For detailed setup instructions, see [docs/quick-start.md](docs/quick-start.md).
 
 ## Architecture
 
-AgentPass is a distributed system with components running locally (on the agent's machine) and remotely (API server).
+AgentPass is a distributed system with components running locally (on the agent's machine) and remotely (API server, email service).
 
 ```
-AI Agent (Claude Code, etc.)
-    |
-    | MCP Protocol (stdio/SSE)
-    v
-AgentPass MCP Server (local)
-    |
-    +---> Credential Vault (local, SQLite + AES-256-GCM)
-    +---> AgentPass API Server (remote -- passport registry, verification, trust)
-    +---> Email Service (verification links, OTP codes)
-    +---> SMS Service (phone verification)
-    +---> Browser Service (Playwright -- fallback registration/login)
+┌─────────────────────────────────────────────────────────────────┐
+│                     AI Agent (Claude Code, etc.)                │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ MCP Protocol (stdio/SSE)
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              AgentPass MCP Server (local machine)               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  - Identity Management (Ed25519 keypairs)                 │  │
+│  │  - Credential Vault (SQLite + AES-256-GCM encryption)     │  │
+│  │  - Authentication Logic (native + fallback modes)         │  │
+│  │  - Browser Automation (Playwright)                        │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└───────┬──────────────────┬────────────────────┬─────────────────┘
+        │                  │                    │
+        ▼                  ▼                    ▼
+┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ API Server   │  │  Email Service   │  │  SMS Service     │
+│ (Hono)       │  │  (CF Workers)    │  │  (Twilio)        │
+│              │  │                  │  │                  │
+│ - Passport   │  │ - Email routing  │  │ - Phone numbers  │
+│   registry   │  │ - OTP extraction │  │ - SMS reception  │
+│ - Signature  │  │ - Verification   │  │ - OTP codes      │
+│   verify     │  │   links          │  │                  │
+│ - Trust      │  │                  │  │                  │
+│   scoring    │  │ @agent-mail.xyz  │  │                  │
+│ - Audit log  │  │                  │  │                  │
+└──────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
-**Key principle:** The agent's private key and credential vault live exclusively on the agent's machine. The API server stores only public keys and metadata. A compromised API server cannot forge agent signatures or access credentials.
+**Key Security Principle:** The agent's private key and credential vault live exclusively on the agent's machine. The API server stores only public keys and metadata. A compromised API server cannot forge agent signatures or access stored credentials.
 
 For the full architecture document, see [docs/architecture.md](docs/architecture.md).
 
@@ -120,53 +211,107 @@ AgentPass exposes 17 tools via the Model Context Protocol:
 | `wait_for_sms` | Wait for an SMS message to arrive |
 | `extract_otp_from_sms` | Extract a one-time password from an SMS message |
 
-## Claude Code Integration
+## Packages
 
-Add AgentPass to your Claude Code MCP configuration:
+AgentPass is a monorepo containing multiple packages:
 
-```json
-{
-  "mcpServers": {
-    "agentpass": {
-      "command": "node",
-      "args": ["/path/to/AgentPass/packages/mcp-server/dist/index.js"]
-    }
-  }
-}
-```
+| Package | Description | Technology |
+|---------|-------------|------------|
+| **@agentpass/core** | Shared library: crypto (Ed25519, AES-256-GCM), passport types, vault, errors, logger | TypeScript |
+| **@agentpass/mcp-server** | MCP Server exposing 17 tools for AI agents | TypeScript, @modelcontextprotocol/sdk |
+| **@agentpass/api-server** | HTTP API for passport registry, verification, trust scoring, audit logs | Hono, libSQL |
+| **@agentpass/email-service** | Email routing and storage using Cloudflare Workers + Durable Objects | Cloudflare Workers, postal-mime |
+| **@agentpass/browser-service** | Browser automation for fallback registration/login flows | Playwright |
+| **@agentpass/sdk** | SDK for third-party services to verify agent identities | TypeScript |
+| **@agentpass/dashboard** | Owner dashboard for managing agents and viewing audit logs | React 19, Tailwind CSS 4 |
+| **@agentpass/landing** | Landing page | React 19, Tailwind CSS 4 |
 
-Generate the config automatically:
+## API Reference
 
-```bash
-node packages/mcp-server/dist/cli.js config
-```
+The AgentPass API Server (deployed at `https://api.agentpass.space`, default local port 3846) provides:
 
-## API Endpoints
-
-The AgentPass API Server (default port 3846) provides:
+### Passport Management
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/passports` | Register a new passport |
-| `GET` | `/passports/:id` | Get passport public info |
-| `DELETE` | `/passports/:id` | Revoke a passport |
-| `POST` | `/verify` | Verify a passport signature (challenge-response) |
-| `GET` | `/passports/:id/trust` | Get trust score details |
+| `POST` | `/passports` | Register a new passport (public key) |
+| `GET` | `/passports/:id` | Get passport public info and metadata |
+| `DELETE` | `/passports/:id` | Revoke a passport (irreversible) |
+
+### Verification & Trust
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/verify` | Verify a passport signature using Ed25519 challenge-response |
+| `GET` | `/passports/:id/trust` | Get trust score details (0-100) |
 | `POST` | `/passports/:id/report-abuse` | Report abuse against a passport |
+
+### Audit Logging
+
+| Method | Path | Description |
+|--------|------|-------------|
 | `POST` | `/passports/:id/audit` | Append an audit log entry |
 | `GET` | `/passports/:id/audit` | List audit log entries (paginated) |
-| `GET` | `/.well-known/agentpass.json` | Discovery endpoint |
+
+### Webhooks
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/webhook/email-received` | Email notification webhook (called by Cloudflare Worker) |
+| `GET` | `/webhook/email-notifications/:address` | Poll for new email notifications |
+
+### Discovery & Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/.well-known/agentpass.json` | AgentPass discovery endpoint |
 | `GET` | `/health` | Health check |
-| `GET` | `/ready` | Readiness check |
+| `GET` | `/ready` | Readiness check (database connectivity) |
 
-For full request/response documentation, see [docs/api-reference.md](docs/api-reference.md).
+For full request/response documentation with examples, see [docs/api-reference.md](docs/api-reference.md).
 
-## Docker (API Server)
+## SDK Integration
+
+Third-party services can integrate AgentPass using the `@agentpass/sdk` package for native authentication:
+
+```typescript
+import { AgentPassSDK } from '@agentpass/sdk';
+
+const agentpass = new AgentPassSDK({
+  apiUrl: 'https://api.agentpass.space',
+});
+
+// Verify an agent's identity
+const result = await agentpass.verify({
+  passportId: 'ap_7xk2m9f3abcd',
+  challenge: 'random-nonce-abc123',
+  signature: 'base64url-encoded-signature',
+});
+
+if (result.valid) {
+  console.log('Agent authenticated!');
+  console.log('Trust score:', result.trust_score);
+}
+```
+
+For the complete SDK integration guide, see [docs/sdk-guide.md](docs/sdk-guide.md).
+
+## Docker Deployment
+
+### API Server
 
 ```bash
+# Build the API server image
 docker build -f packages/api-server/Dockerfile -t agentpass-api .
-docker run -p 3846:3846 -v agentpass-data:/data agentpass-api
+
+# Run with persistent data
+docker run -p 3846:3846 \
+  -v agentpass-data:/data \
+  -e WEBHOOK_SECRET=your-secret-here \
+  agentpass-api
 ```
+
+For complete deployment instructions (including Cloudflare Workers), see [docs/deployment.md](docs/deployment.md).
 
 ## Project Structure
 
@@ -211,38 +356,91 @@ AgentPass/
 
 ## Development
 
+### Building and Testing
+
 ```bash
-pnpm build          # Build all packages
-pnpm test           # Run all 523 tests
-pnpm lint           # Lint code
-pnpm format         # Format code
-pnpm clean          # Clean build artifacts
+# Build all packages
+pnpm build
+
+# Run all 523 tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Lint code
+pnpm lint
+
+# Fix linting issues
+pnpm lint:fix
+
+# Format code with Prettier
+pnpm format
+
+# Check formatting
+pnpm format:check
+
+# Clean build artifacts
+pnpm clean
 ```
 
 ### Environment Variables
 
+Create a `.env` file in the root directory (see `.env.example` for all options):
+
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `NODE_ENV` | `development` | Node environment |
 | `AGENTPASS_PORT` | `3846` | API server port |
-| `AGENTPASS_DB_PATH` | `agentpass.db` | Database file path |
+| `AGENTPASS_DB_PATH` | `agentpass.db` | Database file path (SQLite) |
+| `WEBHOOK_SECRET` | (required) | Secret for webhook authentication |
+| `VITE_API_URL` | `http://localhost:3846` | API URL for dashboard |
+
+For production deployment variables, see `.env.example`.
 
 ## Documentation
 
 ### Getting Started
-- [Quick Start Guide](docs/quick-start.md) — Deploy AgentPass in 5 minutes
-- [Full Deployment Guide](docs/deployment.md) — Complete production setup
 
-### Technical Docs
-- [System Architecture](docs/architecture.md)
-- [Email Service](docs/email-service.md)
-- [API Reference](docs/api-reference.md)
-- [SDK Integration Guide](docs/sdk-guide.md)
+- **[Quick Start Guide](docs/quick-start.md)** — Set up AgentPass locally in 10 minutes
+- **[Deployment Guide](docs/deployment.md)** — Complete production deployment (Dokploy, Cloudflare Workers)
 
-### Project Docs
-- [Product Requirements](docs/prd.md)
-- [Development Roadmap](docs/roadmap.md)
-- [User Stories](docs/user-stories.md)
+### Technical Documentation
+
+- **[System Architecture](docs/architecture.md)** — Detailed system design, component interaction, security model
+- **[API Reference](docs/api-reference.md)** — Complete HTTP API documentation with request/response examples
+- **[SDK Integration Guide](docs/sdk-guide.md)** — How to integrate AgentPass into your service
+- **[Email Service](docs/email-service.md)** — Cloudflare Workers email routing architecture
+
+### Project Documentation
+
+- **[Product Requirements Document](docs/prd.md)** — Complete product specification
+- **[Development Roadmap](docs/roadmap.md)** — Feature roadmap and milestones
+- **[User Stories](docs/user-stories.md)** — Use cases and user journeys
+- **[Dashboard Implementation](docs/dashboard-implementation.md)** — Dashboard architecture and features
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Follow code conventions** defined in [CLAUDE.md](CLAUDE.md)
+3. **Write tests** for new features (we maintain 523+ tests)
+4. **Use conventional commits**: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+5. **Run tests and linting** before submitting:
+   ```bash
+   pnpm test
+   pnpm lint
+   pnpm format
+   ```
+6. **Submit a Pull Request** with a clear description
 
 ## License
 
-MIT
+MIT License — see [LICENSE](LICENSE) for details.
+
+## Built For
+
+**Anthropic Build-a-thon 2025**
+
+AgentPass is built to solve the authentication bottleneck in the AI agent ecosystem, enabling truly autonomous AI agents to operate on the internet with cryptographically-verified identities.

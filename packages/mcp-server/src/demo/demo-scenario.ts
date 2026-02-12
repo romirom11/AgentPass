@@ -77,7 +77,7 @@ export async function runDemo(): Promise<DemoResult> {
   // ── Step 2: Store a credential ────────────────────────────────────
   const step2Name = "store_credential";
   const step2Desc = "Store a GitHub credential in the agent's vault";
-  const storedCred = credentialService.storeCredential({
+  const storedCred = await credentialService.storeCredential({
     passport_id: passportId,
     service: "github.com",
     username: "demo-agent",
@@ -91,7 +91,7 @@ export async function runDemo(): Promise<DemoResult> {
   // ── Step 3: List credentials (no password exposed) ────────────────
   const step3Name = "list_credentials";
   const step3Desc = "List stored credentials (passwords hidden)";
-  const credList = credentialService.listCredentials(passportId);
+  const credList = await credentialService.listCredentials(passportId);
   steps.push({ step: 3, name: step3Name, description: step3Desc, result: credList });
   console.log(`\n[Step 3] ${step3Desc}`);
   console.log(`  -> ${credList.length} credential(s): ${credList.map((c) => c.service).join(", ")}`);
@@ -99,7 +99,7 @@ export async function runDemo(): Promise<DemoResult> {
   // ── Step 4: Get full credential ───────────────────────────────────
   const step4Name = "get_credential";
   const step4Desc = "Retrieve full credential for github.com";
-  const fullCred = credentialService.getCredential(passportId, "github.com");
+  const fullCred = await credentialService.getCredential(passportId, "github.com");
   steps.push({ step: 4, name: step4Name, description: step4Desc, result: fullCred });
   console.log(`\n[Step 4] ${step4Desc}`);
   console.log(`  -> username: ${fullCred?.username}, email: ${fullCred?.email}`);
@@ -129,7 +129,7 @@ export async function runDemo(): Promise<DemoResult> {
   // ── Step 7: Check auth status ─────────────────────────────────────
   const step7Name = "check_auth_status";
   const step7Desc = "Check auth status for github.com (should have credentials)";
-  const status = authService.checkAuthStatus(passportId, "https://github.com");
+  const status = await authService.checkAuthStatus(passportId, "https://github.com");
   steps.push({ step: 7, name: step7Name, description: step7Desc, result: status });
   console.log(`\n[Step 7] ${step7Desc}`);
   console.log(`  -> has_credentials: ${status.has_credentials}`);

@@ -5,7 +5,7 @@ import type { IncomingEmail } from './types.js';
 function makeEmail(overrides: Partial<IncomingEmail> = {}): IncomingEmail {
   return {
     id: crypto.randomUUID(),
-    to: 'bot@agentpass.dev',
+    to: 'bot@agent-mail.xyz',
     from: 'noreply@example.com',
     subject: 'Welcome',
     body: 'Hello agent',
@@ -30,26 +30,26 @@ describe('EmailStore', () => {
       const email = makeEmail();
       store.addEmail(email);
 
-      const result = store.getEmails('bot@agentpass.dev');
+      const result = store.getEmails('bot@agent-mail.xyz');
       expect(result).toHaveLength(1);
       expect(result[0]!.subject).toBe('Welcome');
     });
 
     it('lowercases addresses on storage', () => {
-      store.addEmail(makeEmail({ to: 'Bot@AgentPass.Dev' }));
-      const result = store.getEmails('bot@agentpass.dev');
+      store.addEmail(makeEmail({ to: 'Bot@Agent-Mail.Xyz' }));
+      const result = store.getEmails('bot@agent-mail.xyz');
       expect(result).toHaveLength(1);
     });
 
     it('returns empty array for unknown address', () => {
-      expect(store.getEmails('unknown@agentpass.dev')).toEqual([]);
+      expect(store.getEmails('unknown@agent-mail.xyz')).toEqual([]);
     });
 
     it('filters by from', () => {
       store.addEmail(makeEmail({ from: 'a@example.com' }));
       store.addEmail(makeEmail({ from: 'b@example.com' }));
 
-      const result = store.getEmails('bot@agentpass.dev', { from: 'a@example' });
+      const result = store.getEmails('bot@agent-mail.xyz', { from: 'a@example' });
       expect(result).toHaveLength(1);
       expect(result[0]!.from).toBe('a@example.com');
     });
@@ -58,7 +58,7 @@ describe('EmailStore', () => {
       store.addEmail(makeEmail({ subject: 'Verify your account' }));
       store.addEmail(makeEmail({ subject: 'Weekly digest' }));
 
-      const result = store.getEmails('bot@agentpass.dev', { subject: 'verify' });
+      const result = store.getEmails('bot@agent-mail.xyz', { subject: 'verify' });
       expect(result).toHaveLength(1);
     });
 
@@ -68,7 +68,7 @@ describe('EmailStore', () => {
       store.addEmail(old);
       store.addEmail(recent);
 
-      const result = store.getEmails('bot@agentpass.dev', { after: '2025-01-01T00:00:00Z' });
+      const result = store.getEmails('bot@agent-mail.xyz', { after: '2025-01-01T00:00:00Z' });
       expect(result).toHaveLength(1);
       expect(result[0]!.received_at).toBe('2025-06-01T00:00:00Z');
     });
@@ -101,7 +101,7 @@ describe('EmailStore', () => {
     it('resolves immediately if email already exists', async () => {
       store.addEmail(makeEmail({ subject: 'Confirmation' }));
 
-      const email = await store.waitForEmail('bot@agentpass.dev', { subject: 'confirmation' });
+      const email = await store.waitForEmail('bot@agent-mail.xyz', { subject: 'confirmation' });
       expect(email.subject).toBe('Confirmation');
     });
 
@@ -111,7 +111,7 @@ describe('EmailStore', () => {
       }, 300);
 
       const email = await store.waitForEmail(
-        'bot@agentpass.dev',
+        'bot@agent-mail.xyz',
         { subject: 'delayed' },
         5_000,
       );
@@ -120,8 +120,8 @@ describe('EmailStore', () => {
 
     it('rejects on timeout', async () => {
       await expect(
-        store.waitForEmail('bot@agentpass.dev', { subject: 'never-arrives' }, 400),
-      ).rejects.toThrow('Timed out waiting for email to bot@agentpass.dev');
+        store.waitForEmail('bot@agent-mail.xyz', { subject: 'never-arrives' }, 400),
+      ).rejects.toThrow('Timed out waiting for email to bot@agent-mail.xyz');
     });
   });
 
@@ -250,23 +250,23 @@ describe('EmailStore', () => {
 
   describe('clear', () => {
     it('clears emails for a specific address', () => {
-      store.addEmail(makeEmail({ to: 'a@agentpass.dev' }));
-      store.addEmail(makeEmail({ to: 'b@agentpass.dev' }));
+      store.addEmail(makeEmail({ to: 'a@agent-mail.xyz' }));
+      store.addEmail(makeEmail({ to: 'b@agent-mail.xyz' }));
 
-      store.clear('a@agentpass.dev');
+      store.clear('a@agent-mail.xyz');
 
-      expect(store.getEmails('a@agentpass.dev')).toEqual([]);
-      expect(store.getEmails('b@agentpass.dev')).toHaveLength(1);
+      expect(store.getEmails('a@agent-mail.xyz')).toEqual([]);
+      expect(store.getEmails('b@agent-mail.xyz')).toHaveLength(1);
     });
 
     it('clears all emails when no address provided', () => {
-      store.addEmail(makeEmail({ to: 'a@agentpass.dev' }));
-      store.addEmail(makeEmail({ to: 'b@agentpass.dev' }));
+      store.addEmail(makeEmail({ to: 'a@agent-mail.xyz' }));
+      store.addEmail(makeEmail({ to: 'b@agent-mail.xyz' }));
 
       store.clear();
 
-      expect(store.getEmails('a@agentpass.dev')).toEqual([]);
-      expect(store.getEmails('b@agentpass.dev')).toEqual([]);
+      expect(store.getEmails('a@agent-mail.xyz')).toEqual([]);
+      expect(store.getEmails('b@agent-mail.xyz')).toEqual([]);
     });
   });
 });

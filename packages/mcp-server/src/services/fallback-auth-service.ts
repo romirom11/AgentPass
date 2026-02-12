@@ -172,7 +172,7 @@ export class FallbackAuthService {
     }
 
     // Step 3 -- try login if credentials exist
-    const credential = this.credentialService.getCredential(
+    const credential = await this.credentialService.getCredential(
       passportId,
       service,
     );
@@ -370,7 +370,7 @@ export class FallbackAuthService {
         };
 
         // Store credentials in the vault
-        this.credentialService.storeCredential({
+        await this.credentialService.storeCredential({
           passport_id: passportId,
           service,
           username: credentials.username,

@@ -6,14 +6,14 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { SmsService } from "../services/sms-service.js";
+import type { SmsServiceInterface } from "../services/sms-service-interface.js";
 
 /**
  * Register all SMS verification tools on the given MCP server.
  */
 export function registerSmsTools(
   server: McpServer,
-  smsService: SmsService,
+  smsService: SmsServiceInterface,
 ): void {
   server.registerTool(
     "get_phone_number",
@@ -32,7 +32,7 @@ export function registerSmsTools(
     },
     async ({ passport_id }) => {
       try {
-        const phone_number = smsService.getPhoneNumber(passport_id);
+        const phone_number = await smsService.getPhoneNumber(passport_id);
 
         return {
           content: [
@@ -77,7 +77,11 @@ export function registerSmsTools(
     },
     async ({ phone_number, timeout }) => {
       try {
-        const sms = await smsService.waitForSms(phone_number, timeout);
+        const sms = await smsService.waitForSms(
+          phone_number,
+          undefined,
+          timeout,
+        );
 
         return {
           content: [
@@ -118,14 +122,14 @@ export function registerSmsTools(
       description:
         "Extract a one-time password (OTP) or verification code (4-8 digits) from an SMS message body.",
       inputSchema: {
-        sms_id: z
+        sms_body: z
           .string()
           .min(1)
-          .describe("The unique ID of the SMS message to extract the OTP from"),
+          .describe("The text body of the SMS message to extract the OTP from"),
       },
     },
-    async ({ sms_id }) => {
-      const code = smsService.extractOtpFromSms(sms_id);
+    async ({ sms_body }) => {
+      const code = smsService.extractOtpFromSms(sms_body);
 
       if (!code) {
         return {
@@ -133,7 +137,7 @@ export function registerSmsTools(
           content: [
             {
               type: "text" as const,
-              text: `No OTP code found in SMS: ${sms_id}`,
+              text: "No OTP code found in SMS body",
             },
           ],
         };

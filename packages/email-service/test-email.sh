@@ -4,7 +4,7 @@
 # Usage: ./test-email.sh [agent-email]
 
 WORKER_URL=${WORKER_URL:-"http://localhost:8787"}
-AGENT_EMAIL=${1:-"test-agent@agentpass.dev"}
+AGENT_EMAIL=${1:-"test-agent@agent-mail.xyz"}
 
 echo "🧪 Sending test email to: $AGENT_EMAIL"
 echo "📍 Worker URL: $WORKER_URL"

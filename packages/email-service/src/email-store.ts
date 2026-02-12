@@ -13,6 +13,10 @@ export class EmailStore {
   /** address (lowercased) -> emails ordered by received_at */
   private store = new Map<string, IncomingEmail[]>();
 
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private readonly MAX_EMAILS_PER_ADDRESS = 100;
+  private readonly EMAIL_TTL_MS = 60 * 60 * 1000; // 1 hour
+
   // ------------------------------------------------------------------
   // Public API
   // ------------------------------------------------------------------
@@ -31,6 +35,12 @@ export class EmailStore {
     const key = stored.to;
     const bucket = this.store.get(key) ?? [];
     bucket.push(stored);
+
+    // Cap the number of emails per address
+    if (bucket.length > this.MAX_EMAILS_PER_ADDRESS) {
+      bucket.shift(); // Remove oldest
+    }
+
     this.store.set(key, bucket);
 
     return stored;
@@ -155,6 +165,40 @@ export class EmailStore {
       this.store.delete(address.toLowerCase());
     } else {
       this.store.clear();
+    }
+  }
+
+  /**
+   * Start automatic cleanup of old emails.
+   * Runs cleanup every 5 minutes to remove emails older than 1 hour.
+   */
+  startCleanup(): void {
+    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+  }
+
+  /**
+   * Stop automatic cleanup and clear all stored emails.
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.store.clear();
+  }
+
+  /**
+   * Remove emails older than EMAIL_TTL_MS and enforce MAX_EMAILS_PER_ADDRESS limit.
+   */
+  private cleanup(): void {
+    const cutoff = new Date(Date.now() - this.EMAIL_TTL_MS);
+    for (const [address, emails] of this.store.entries()) {
+      const filtered = emails.filter(e => new Date(e.received_at) > cutoff);
+      if (filtered.length === 0) {
+        this.store.delete(address);
+      } else {
+        this.store.set(address, filtered.slice(-this.MAX_EMAILS_PER_ADDRESS));
+      }
     }
   }
 

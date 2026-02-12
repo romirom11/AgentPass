@@ -27,7 +27,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -39,7 +39,7 @@ describe("AgentPassClient", () => {
 
       expect(result).toEqual(verifyResult);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.agentpass.dev/verify",
+        "https://api.agentpass.space/verify",
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -60,7 +60,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -76,13 +76,13 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev///" },
+        { apiUrl: "https://api.agentpass.space///" },
         mockFetch,
       );
 
       await client.verifyPassport("ap_1", "ch", "sig");
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.agentpass.dev/verify",
+        "https://api.agentpass.space/verify",
         expect.anything(),
       );
     });
@@ -107,7 +107,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -115,7 +115,7 @@ describe("AgentPassClient", () => {
 
       expect(result).toEqual(passportInfo);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.agentpass.dev/passports/ap_abc123",
+        "https://api.agentpass.space/passports/ap_abc123",
         expect.objectContaining({
           method: "GET",
           headers: { Accept: "application/json" },
@@ -131,7 +131,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -149,7 +149,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -157,7 +157,7 @@ describe("AgentPassClient", () => {
 
       expect(result).toEqual(abuseResult);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.agentpass.dev/passports/ap_abc123/report-abuse",
+        "https://api.agentpass.space/passports/ap_abc123/report-abuse",
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ reason: "spam activity" }),
@@ -173,7 +173,7 @@ describe("AgentPassClient", () => {
       });
 
       const client = new AgentPassClient(
-        { apiUrl: "https://api.agentpass.dev" },
+        { apiUrl: "https://api.agentpass.space" },
         mockFetch,
       );
 
@@ -218,7 +218,7 @@ describe("generateWellKnownConfig", () => {
 describe("createVerificationMiddleware", () => {
   it("returns a function", () => {
     const verifyFn = createVerificationMiddleware({
-      apiUrl: "https://api.agentpass.dev",
+      apiUrl: "https://api.agentpass.space",
     });
 
     expect(typeof verifyFn).toBe("function");
@@ -226,7 +226,7 @@ describe("createVerificationMiddleware", () => {
 
   it("returns null when headers are missing", async () => {
     const verifyFn = createVerificationMiddleware({
-      apiUrl: "https://api.agentpass.dev",
+      apiUrl: "https://api.agentpass.space",
     });
 
     const result = await verifyFn({
@@ -238,7 +238,7 @@ describe("createVerificationMiddleware", () => {
 
   it("returns null when X-AgentPass-ID is missing", async () => {
     const verifyFn = createVerificationMiddleware({
-      apiUrl: "https://api.agentpass.dev",
+      apiUrl: "https://api.agentpass.space",
     });
 
     const result = await verifyFn({
@@ -260,7 +260,7 @@ describe("createVerificationMiddleware", () => {
     });
 
     const verifyFn = createVerificationMiddleware(
-      { apiUrl: "https://api.agentpass.dev" },
+      { apiUrl: "https://api.agentpass.space" },
       mockFetch,
     );
 
@@ -292,7 +292,7 @@ describe("createVerificationMiddleware", () => {
     });
 
     const verifyFn = createVerificationMiddleware(
-      { apiUrl: "https://api.agentpass.dev" },
+      { apiUrl: "https://api.agentpass.space" },
       mockFetch,
     );
 
@@ -311,7 +311,7 @@ describe("createVerificationMiddleware", () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
     const verifyFn = createVerificationMiddleware(
-      { apiUrl: "https://api.agentpass.dev" },
+      { apiUrl: "https://api.agentpass.space" },
       mockFetch,
     );
 

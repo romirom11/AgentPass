@@ -11,8 +11,8 @@ describe("CredentialService", () => {
   const PASSPORT_ID = "ap_aabbccddeeff";
 
   describe("storeCredential", () => {
-    it("should store and return a credential", () => {
-      const cred = service.storeCredential({
+    it("should store and return a credential", async () => {
+      const cred = await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "github",
         username: "agent-bot",
@@ -27,8 +27,8 @@ describe("CredentialService", () => {
       expect(cred.stored_at).toBeTruthy();
     });
 
-    it("should overwrite existing credential for same service", () => {
-      service.storeCredential({
+    it("should overwrite existing credential for same service", async () => {
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "github",
         username: "old-user",
@@ -36,7 +36,7 @@ describe("CredentialService", () => {
         email: "old@example.com",
       });
 
-      service.storeCredential({
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "github",
         username: "new-user",
@@ -44,15 +44,15 @@ describe("CredentialService", () => {
         email: "new@example.com",
       });
 
-      const cred = service.getCredential(PASSPORT_ID, "github");
+      const cred = await service.getCredential(PASSPORT_ID, "github");
       expect(cred?.username).toBe("new-user");
       expect(cred?.password).toBe("new-pass");
     });
   });
 
   describe("getCredential", () => {
-    it("should return stored credential", () => {
-      service.storeCredential({
+    it("should return stored credential", async () => {
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "slack",
         username: "bot",
@@ -60,38 +60,38 @@ describe("CredentialService", () => {
         email: "bot@example.com",
       });
 
-      const cred = service.getCredential(PASSPORT_ID, "slack");
+      const cred = await service.getCredential(PASSPORT_ID, "slack");
       expect(cred).toBeDefined();
       expect(cred!.service).toBe("slack");
       expect(cred!.username).toBe("bot");
     });
 
-    it("should return null for non-existent service", () => {
-      const cred = service.getCredential(PASSPORT_ID, "nonexistent");
+    it("should return null for non-existent service", async () => {
+      const cred = await service.getCredential(PASSPORT_ID, "nonexistent");
       expect(cred).toBeNull();
     });
 
-    it("should return null for non-existent passport", () => {
-      const cred = service.getCredential("ap_000000000000", "github");
+    it("should return null for non-existent passport", async () => {
+      const cred = await service.getCredential("ap_000000000000", "github");
       expect(cred).toBeNull();
     });
   });
 
   describe("listCredentials", () => {
-    it("should return empty array for unknown passport", () => {
-      const list = service.listCredentials("ap_000000000000");
+    it("should return empty array for unknown passport", async () => {
+      const list = await service.listCredentials("ap_000000000000");
       expect(list).toEqual([]);
     });
 
-    it("should return summaries without passwords", () => {
-      service.storeCredential({
+    it("should return summaries without passwords", async () => {
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "github",
         username: "agent",
         password: "secret",
         email: "a@example.com",
       });
-      service.storeCredential({
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "slack",
         username: "bot",
@@ -99,7 +99,7 @@ describe("CredentialService", () => {
         email: "b@example.com",
       });
 
-      const list = service.listCredentials(PASSPORT_ID);
+      const list = await service.listCredentials(PASSPORT_ID);
       expect(list).toHaveLength(2);
 
       for (const item of list) {
@@ -113,8 +113,8 @@ describe("CredentialService", () => {
   });
 
   describe("deleteCredential", () => {
-    it("should remove an existing credential", () => {
-      service.storeCredential({
+    it("should remove an existing credential", async () => {
+      await service.storeCredential({
         passport_id: PASSPORT_ID,
         service: "github",
         username: "agent",
@@ -122,15 +122,15 @@ describe("CredentialService", () => {
         email: "a@example.com",
       });
 
-      const deleted = service.deleteCredential(PASSPORT_ID, "github");
+      const deleted = await service.deleteCredential(PASSPORT_ID, "github");
       expect(deleted).toBe(true);
 
-      const cred = service.getCredential(PASSPORT_ID, "github");
+      const cred = await service.getCredential(PASSPORT_ID, "github");
       expect(cred).toBeNull();
     });
 
-    it("should return false for non-existent credential", () => {
-      const deleted = service.deleteCredential(PASSPORT_ID, "nonexistent");
+    it("should return false for non-existent credential", async () => {
+      const deleted = await service.deleteCredential(PASSPORT_ID, "nonexistent");
       expect(deleted).toBe(false);
     });
   });

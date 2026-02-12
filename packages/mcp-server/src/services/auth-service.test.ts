@@ -112,7 +112,7 @@ describe("AuthService", () => {
         owner_email: "owner@test.com",
       });
 
-      const status = authService.checkAuthStatus(
+      const status = await authService.checkAuthStatus(
         passport.passport_id,
         "https://github.com",
       );
@@ -127,7 +127,7 @@ describe("AuthService", () => {
         owner_email: "owner@test.com",
       });
 
-      credentialService.storeCredential({
+      await credentialService.storeCredential({
         passport_id: passport.passport_id,
         service: "github.com",
         username: "bot",
@@ -135,7 +135,7 @@ describe("AuthService", () => {
         email: "bot@test.com",
       });
 
-      const status = authService.checkAuthStatus(
+      const status = await authService.checkAuthStatus(
         passport.passport_id,
         "https://github.com",
       );

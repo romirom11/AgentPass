@@ -1,6 +1,8 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import StatusBadge from "../components/StatusBadge.js";
 import TrustScoreBar from "../components/TrustScoreBar.js";
+import ConfirmDialog from "../components/ConfirmDialog.js";
 import { apiClient } from "../api/client.js";
 import { useApi } from "../hooks/useApi.js";
 
@@ -60,7 +62,7 @@ const agentsData: Record<
       },
       {
         service: "Notion",
-        username: "ws01@agentpass.dev",
+        username: "ws01@agent-mail.xyz",
         createdAt: "2025-01-18",
       },
       {
@@ -124,12 +126,12 @@ const agentsData: Record<
     credentials: [
       {
         service: "Gmail",
-        username: "agent.email@agentpass.dev",
+        username: "agent.email@agent-mail.xyz",
         createdAt: "2025-01-21",
       },
       {
         service: "Outlook",
-        username: "ea-bot@agentpass.dev",
+        username: "ea-bot@agent-mail.xyz",
         createdAt: "2025-01-22",
       },
       {
@@ -185,6 +187,10 @@ const agentsData: Record<
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   const { data: passport, loading: passportLoading, error: passportError } = useApi(
     () => apiClient.getPassport(id!),
@@ -199,6 +205,24 @@ export default function AgentDetailPage() {
   // Fallback to mock data if API not available (temporary during development)
   const agent = passport || (id ? agentsData[id] : undefined);
   const auditLog = auditData?.entries || (id && agentsData[id] ? agentsData[id].auditLog : []);
+
+  const handleRevoke = async () => {
+    if (!id) return;
+
+    setRevoking(true);
+    setRevokeError(null);
+
+    try {
+      await apiClient.revokePassport(id);
+      // Success - redirect to agents list
+      navigate("/agents");
+    } catch (err) {
+      setRevokeError(err instanceof Error ? err.message : "Failed to revoke passport");
+      setShowRevokeDialog(false);
+    } finally {
+      setRevoking(false);
+    }
+  };
 
   if (passportLoading || auditLoading) {
     return (
@@ -277,10 +301,43 @@ export default function AgentDetailPage() {
             </p>
           </div>
         </div>
-        <button className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50">
-          Revoke Passport
+        <button
+          onClick={() => setShowRevokeDialog(true)}
+          disabled={revoking || agent.status === "revoked"}
+          className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {revoking ? "Revoking..." : "Revoke Passport"}
         </button>
       </div>
+
+      {/* Revoke Error */}
+      {revokeError && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+              <svg
+                className="h-4 w-4 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-red-900">
+                Failed to revoke passport
+              </h3>
+              <p className="mt-0.5 text-sm text-red-700">{revokeError}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Left column */}
@@ -425,6 +482,18 @@ export default function AgentDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Revoke Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showRevokeDialog}
+        title="Revoke Passport?"
+        message="Are you sure you want to revoke this passport? This action is irreversible and the agent will lose access to all services."
+        confirmLabel="Revoke"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleRevoke}
+        onCancel={() => setShowRevokeDialog(false)}
+      />
     </div>
   );
 }

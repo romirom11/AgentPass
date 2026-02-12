@@ -42,6 +42,9 @@ export function encrypt(plaintext: string, key: Buffer): string {
     );
   }
 
+  // IV is generated from Node.js CSPRNG (crypto.randomBytes) which provides
+  // sufficient entropy for AES-GCM. IV collision probability with 96-bit IVs
+  // is negligible for practical use (birthday bound ~2^48 encryptions).
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv, {
     authTagLength: AUTH_TAG_LENGTH,
