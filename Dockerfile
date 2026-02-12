@@ -28,18 +28,15 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy workspace config
-COPY pnpm-workspace.yaml package.json ./
+# Copy everything from build stage including node_modules
+COPY --from=base /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=base /app/package.json ./package.json
+COPY --from=base /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=base /app/node_modules ./node_modules
 
-# Copy built packages
-COPY --from=base /app/packages/core/package.json ./packages/core/package.json
-COPY --from=base /app/packages/core/dist ./packages/core/dist
-
-COPY --from=base /app/packages/api-server/package.json ./packages/api-server/package.json
-COPY --from=base /app/packages/api-server/dist ./packages/api-server/dist
-
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile
+# Copy built packages with their dependencies
+COPY --from=base /app/packages/core ./packages/core
+COPY --from=base /app/packages/api-server ./packages/api-server
 
 WORKDIR /app/packages/api-server
 
