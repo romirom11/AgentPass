@@ -412,13 +412,359 @@ function CodeExample() {
   );
 }
 
+function CompleteFlow() {
+  return (
+    <section className="bg-gray-950 py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 mb-6">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            The Complete Flow
+          </div>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            From Owner Registration to Agent Authentication
+          </h2>
+          <p className="mt-4 text-lg text-gray-400">
+            See the full journey — how it all works together.
+          </p>
+        </div>
+
+        {/* Timeline steps */}
+        <div className="mx-auto mt-16 max-w-5xl space-y-8">
+          {/* Step 1: Owner Signs Up */}
+          <div className="flex gap-6">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-lg font-bold text-emerald-400">
+                1
+              </div>
+              <div className="mt-2 h-full w-0.5 bg-gradient-to-b from-emerald-500/50 to-transparent" />
+            </div>
+            <div className="flex-1 pb-12">
+              <h3 className="text-xl font-semibold text-white">Owner Signs Up</h3>
+              <p className="mt-2 text-gray-400">
+                Register at <span className="text-cyan-400 font-mono">dashboard.agentpass.space</span> → create account → manage agents from a central dashboard.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2: Create Agent Passport */}
+          <div className="flex gap-6">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-500/20 text-lg font-bold text-cyan-400">
+                2
+              </div>
+              <div className="mt-2 h-full w-0.5 bg-gradient-to-b from-cyan-500/50 to-transparent" />
+            </div>
+            <div className="flex-1 pb-12">
+              <h3 className="text-xl font-semibold text-white">Create Agent Passport</h3>
+              <p className="mt-2 text-gray-400">
+                Owner creates an agent → AgentPass generates Ed25519 key pair → agent gets unique email → passport registered on API.
+              </p>
+              <div className="mt-3 rounded-lg border border-gray-700 bg-gray-800/50 p-3">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  <span className="text-sm text-gray-300">Email: <code className="text-emerald-300">agent-name@agent-mail.xyz</code></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3: Connect to Claude Code */}
+          <div className="flex gap-6">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-lg font-bold text-purple-400">
+                3
+              </div>
+              <div className="mt-2 h-full w-0.5 bg-gradient-to-b from-purple-500/50 to-transparent" />
+            </div>
+            <div className="flex-1 pb-12">
+              <h3 className="text-xl font-semibold text-white">Connect to Claude Code</h3>
+              <p className="mt-2 text-gray-400">
+                Add MCP server to Claude Code config → agent now has <span className="text-white font-semibold">17 tools</span> available for identity and authentication.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4: Agent Authenticates */}
+          <div className="flex gap-6">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-lg font-bold text-indigo-400">
+                4
+              </div>
+              <div className="mt-2 h-full w-0.5 bg-gradient-to-b from-indigo-500/50 to-transparent" />
+            </div>
+            <div className="flex-1 pb-12">
+              <h3 className="text-xl font-semibold text-white mb-3">Agent Authenticates</h3>
+              <p className="text-gray-400 mb-4">
+                Agent calls <code className="text-cyan-300 font-mono">authenticate("github.com")</code> → AgentPass handles everything automatically:
+              </p>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* Native Path */}
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                    Native Path (Preferred)
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Checks <code className="text-emerald-300">/.well-known/agentpass.json</code></span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Sends Ed25519 signed challenge</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Service verifies via API</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Session token in <span className="text-emerald-300 font-semibold">~500ms</span></span>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                    <p className="text-xs font-medium text-emerald-200">No email, no password, no CAPTCHA</p>
+                  </div>
+                </div>
+
+                {/* Fallback Path */}
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-6">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/20 px-3 py-1 text-xs font-medium text-cyan-300">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Fallback Path (Any Website)
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Opens Playwright browser</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Fills registration form</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Uses <code className="text-cyan-300">agent@agent-mail.xyz</code></span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Extracts verification link → clicks it</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span className="text-gray-300">Saves credentials (encrypted)</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
+                    <p className="text-xs font-medium text-cyan-200">First time: ~30-60s | Re-login: ~5s</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 5: Owner Gets Notified */}
+          <div className="flex gap-6">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-lg font-bold text-orange-400">
+                5
+              </div>
+            </div>
+            <div className="flex-1 pb-4">
+              <h3 className="text-xl font-semibold text-white">Owner Gets Notified</h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                    </svg>
+                    <span className="text-sm font-semibold text-white">Telegram</span>
+                  </div>
+                  <p className="text-xs text-emerald-300">Agent registered on github.com</p>
+                </div>
+                <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
+                    </svg>
+                    <span className="text-sm font-semibold text-white">Dashboard</span>
+                  </div>
+                  <p className="text-xs text-gray-400">Real-time audit log</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NativeVsFallback() {
+  return (
+    <section className="bg-gray-900 py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            Native vs Fallback Auth
+          </h2>
+          <p className="mt-4 text-lg text-gray-400">
+            Two modes. Native is instant. Fallback works everywhere.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-16 grid max-w-5xl gap-8 lg:grid-cols-2">
+          {/* Native Auth */}
+          <div className="relative rounded-xl border border-emerald-500/30 bg-gray-800/50 p-8">
+            <div className="absolute -top-3 left-6 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300">
+              Preferred
+            </div>
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20">
+                <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">Native Auth</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">When</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Service integrated AgentPass SDK</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">How</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Ed25519 challenge-response</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">Speed</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">~500ms</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">Email</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">No</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">CAPTCHA</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Never</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-emerald-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-emerald-400">Setup</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">
+                  Install <code className="text-emerald-300">@agentpass/sdk</code>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Fallback Auth */}
+          <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-8">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20">
+                <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">Fallback Auth</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">When</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Any website</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">How</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Browser automation (Playwright)</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">Speed</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">~30-60s first time, ~5s re-login</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">Email</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">
+                  Yes <span className="text-gray-500">(agent-mail.xyz)</span>
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">CAPTCHA</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Escalated to owner</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded bg-cyan-500/10 px-2 py-1">
+                  <span className="text-xs font-semibold text-cyan-400">Setup</span>
+                </div>
+                <p className="flex-1 text-sm text-gray-300">Nothing</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HowItWorks() {
   const steps = [
     {
       step: "01",
-      title: "Get a Passport",
+      title: "Create Passport",
       description:
-        "Agent receives an Ed25519 key pair and unique email address. One command: create_identity(). Instant cryptographic identity.",
+        "Owner creates an agent with one command. Agent gets Ed25519 keys + email + passport ID.",
       icon: (
         <path
           strokeLinecap="round"
@@ -431,7 +777,7 @@ function HowItWorks() {
       step: "02",
       title: "Authenticate Anywhere",
       description:
-        "Agent calls authenticate(url). Native auth if the service supports AgentPass, automatic browser-based registration if not. Email verification handled seamlessly.",
+        "Agent calls authenticate(url). Native if service supports AgentPass SDK, browser automation if not. Email verification, CAPTCHA — all handled.",
       icon: (
         <path
           strokeLinecap="round"
@@ -442,9 +788,9 @@ function HowItWorks() {
     },
     {
       step: "03",
-      title: "Credentials Stored Securely",
+      title: "Credentials Stored",
       description:
-        "All passwords and tokens encrypted with AES-256-GCM in a local vault. Private key never leaves the machine. Revoke any agent instantly.",
+        "Passwords encrypted with AES-256-GCM in local vault. Owner monitors everything via dashboard and Telegram. Revoke access instantly.",
       icon: (
         <path
           strokeLinecap="round"
@@ -691,6 +1037,177 @@ function ForServices() {
   );
 }
 
+function OwnerNotifications() {
+  return (
+    <section className="bg-gray-950 py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            Owner Stays in Control
+          </h2>
+          <p className="mt-4 text-lg text-gray-400">
+            Real-time notifications via Telegram and Dashboard. Approve, deny, or monitor everything.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-16 grid max-w-6xl gap-8 lg:grid-cols-2">
+          {/* Telegram Bot Notifications */}
+          <div>
+            <div className="mb-4 flex items-center gap-2">
+              <svg className="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+              <h3 className="text-xl font-semibold text-white">Telegram Bot</h3>
+            </div>
+
+            <div className="space-y-3">
+              {/* Success notification */}
+              <div className="rounded-xl border border-gray-700 bg-gray-800/80 p-4 shadow-lg">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20">
+                    <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-400">New Registration</span>
+                </div>
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Agent:</span> research-bot
+                </p>
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Service:</span> github.com
+                </p>
+                <p className="text-sm text-gray-400">Duration: 34.5s</p>
+              </div>
+
+              {/* CAPTCHA notification */}
+              <div className="rounded-xl border border-orange-500/30 bg-gray-800/80 p-4 shadow-lg">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20">
+                    <svg className="h-4 w-4 text-orange-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-orange-400">CAPTCHA Detected</span>
+                </div>
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Agent:</span> sales-bot
+                </p>
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Service:</span> twitter.com
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white">
+                    Open Dashboard
+                  </button>
+                  <button className="rounded-md border border-gray-600 bg-gray-700/50 px-3 py-1.5 text-xs font-medium text-gray-300">
+                    Skip
+                  </button>
+                </div>
+              </div>
+
+              {/* Approval request */}
+              <div className="rounded-xl border border-cyan-500/30 bg-gray-800/80 p-4 shadow-lg">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20">
+                    <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-cyan-400">Approval Required</span>
+                </div>
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Agent:</span> sales-bot
+                </p>
+                <p className="text-sm text-gray-300">
+                  wants to purchase on <span className="font-medium text-white">amazon.com</span>
+                </p>
+                <p className="text-sm text-cyan-300 font-semibold">Amount: $49.99</p>
+                <div className="mt-3 flex gap-2">
+                  <button className="rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white">
+                    Approve
+                  </button>
+                  <button className="rounded-md bg-red-500/20 border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-300">
+                    Deny
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SMS Verification */}
+          <div>
+            <div className="mb-4 flex items-center gap-2">
+              <svg className="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+              </svg>
+              <h3 className="text-xl font-semibold text-white">SMS Verification</h3>
+            </div>
+
+            <div className="rounded-xl border border-gray-700 bg-gray-800/80 p-6">
+              <div className="mb-4 rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-purple-300">Fully Automated</span>
+                </div>
+                <p className="text-sm text-gray-300">
+                  Agent needs phone verification? AgentPass provisions a number from our Twilio pool, receives the OTP, enters it automatically.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20 text-sm font-bold text-purple-400">
+                    1
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Service requests phone</p>
+                    <p className="text-xs text-gray-400 mt-1">Agent encounters SMS verification step</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20 text-sm font-bold text-purple-400">
+                    2
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">AgentPass provisions number</p>
+                    <p className="text-xs text-gray-400 mt-1">From Twilio pool, temporary assignment</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20 text-sm font-bold text-purple-400">
+                    3
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">OTP received & entered</p>
+                    <p className="text-xs text-gray-400 mt-1">Automatically extracted and submitted</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-sm font-bold text-emerald-400">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Owner does nothing</p>
+                    <p className="text-xs text-gray-400 mt-1">Just gets a notification when complete</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ForOwners() {
   const features = [
     {
@@ -768,7 +1285,7 @@ function ForOwners() {
   ];
 
   return (
-    <section id="for-owners" className="bg-gray-950 py-20 sm:py-28">
+    <section id="for-owners" className="bg-gray-900 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
@@ -1283,10 +1800,13 @@ export default function App() {
       <main>
         <Hero />
         <Problem />
+        <CompleteFlow />
         <HowItWorks />
+        <NativeVsFallback />
         <CodeExample />
         <ForServices />
         <ForOwners />
+        <OwnerNotifications />
         <Architecture />
         <McpTools />
         <QuickStart />
