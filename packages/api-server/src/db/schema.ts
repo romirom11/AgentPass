@@ -40,6 +40,22 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_passport_id
   ON audit_log(passport_id, created_at DESC)
 `;
 
+const EMAIL_NOTIFICATIONS_TABLE = `
+CREATE TABLE IF NOT EXISTS email_notifications (
+  email_id     TEXT PRIMARY KEY,
+  recipient    TEXT NOT NULL,
+  sender       TEXT NOT NULL,
+  subject      TEXT NOT NULL DEFAULT '',
+  received_at  TEXT NOT NULL,
+  notified_at  TEXT NOT NULL,
+  retrieved_at TEXT
+)`;
+
+const EMAIL_NOTIFICATIONS_INDEX = `
+CREATE INDEX IF NOT EXISTS idx_email_notifications_recipient
+  ON email_notifications(recipient, received_at DESC)
+`;
+
 /**
  * Initialize the libsql database with schema tables.
  *
@@ -58,6 +74,8 @@ export async function initDatabase(dbPath: string): Promise<Client> {
   await db.execute(PASSPORTS_TABLE);
   await db.execute(AUDIT_LOG_TABLE);
   await db.execute(AUDIT_LOG_INDEX);
+  await db.execute(EMAIL_NOTIFICATIONS_TABLE);
+  await db.execute(EMAIL_NOTIFICATIONS_INDEX);
 
   return db;
 }

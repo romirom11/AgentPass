@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentpass-api
+    ports:
+      - "3846:3846"
+    environment:
+      - NODE_ENV=production
+      - AGENTPASS_PORT=3846
+      - AGENTPASS_DB_PATH=/app/data/agentpass.db
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    volumes:
+      - agentpass-data:/app/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agentpass-api.rule=Host(`agentpass.kdnx.cloud`)"
+      - "traefik.http.routers.agentpass-api.entrypoints=websecure"
+      - "traefik.http.routers.agentpass-api.tls=true"
+      - "traefik.http.routers.agentpass-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agentpass-api.loadbalancer.server.port=3846"
+
+volumes:
+  agentpass-data:
+    driver: local

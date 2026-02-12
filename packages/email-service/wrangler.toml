@@ -1,0 +1,49 @@
+# Cloudflare Workers configuration for AgentPass Email Service
+
+name = "agentpass-email-worker"
+main = "src/worker.ts"
+compatibility_date = "2024-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects for email storage
+[[durable_objects.bindings]]
+name = "EMAIL_STORAGE"
+class_name = "EmailStorage"
+script_name = "agentpass-email-worker"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EmailStorage"]
+
+# Environment variables
+[vars]
+API_SERVER_URL = "https://agentpass.kdnx.cloud"
+
+# Secrets (set via: wrangler secret put WEBHOOK_SECRET)
+# WEBHOOK_SECRET = "set-via-wrangler-secret-put"
+
+# Production environment
+[env.production]
+vars = { API_SERVER_URL = "https://agentpass.kdnx.cloud" }
+
+[[env.production.durable_objects.bindings]]
+name = "EMAIL_STORAGE"
+class_name = "EmailStorage"
+script_name = "agentpass-email-worker-production"
+
+[[env.production.migrations]]
+tag = "v1"
+new_sqlite_classes = ["EmailStorage"]
+
+# Development environment
+[env.dev]
+vars = { API_SERVER_URL = "http://localhost:3846" }
+
+[[env.dev.durable_objects.bindings]]
+name = "EMAIL_STORAGE"
+class_name = "EmailStorage"
+script_name = "agentpass-email-worker"
+
+[[env.dev.migrations]]
+tag = "v1"
+new_sqlite_classes = ["EmailStorage"]

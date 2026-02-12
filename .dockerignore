@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+**/*.log
+.env
+.env.*
+*.db
+*.db-*
+.DS_Store
+**/coverage
+.vscode
+.idea
+.git
+.github
+.beads
+docs
+*.md

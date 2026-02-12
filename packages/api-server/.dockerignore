@@ -1,6 +1,11 @@
 node_modules
 dist
-*.db
-*.db-wal
-*.db-shm
+*.log
 .env
+.env.*
+*.db
+*.db-*
+.DS_Store
+coverage
+.vscode
+.idea

@@ -14,6 +14,7 @@ import { createPassportsRouter } from "./routes/passports.js";
 import { createVerifyRouter } from "./routes/verify.js";
 import { createAuditRouter } from "./routes/audit.js";
 import { createTrustRouter } from "./routes/trust.js";
+import { createWebhookRouter } from "./routes/webhooks.js";
 import { createHealthRouter } from "./middleware/health.js";
 
 const PORT = parseInt(process.env.AGENTPASS_PORT || "3846", 10);
@@ -51,6 +52,7 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
   const verifyRouter = createVerifyRouter(db);
   const auditRouter = createAuditRouter(db);
   const trustRouter = createTrustRouter(db);
+  const webhookRouter = createWebhookRouter(db);
   const healthRouter = createHealthRouter(db);
 
   app.route("/", healthRouter);
@@ -61,6 +63,8 @@ export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; 
   app.route("/", auditRouter);
   // Trust routes are nested under /passports/:id/trust and /passports/:id/report-abuse
   app.route("/passports", trustRouter);
+  // Webhook routes for external services (email worker, etc.)
+  app.route("/webhook", webhookRouter);
 
   // --- Global error handler ---
   app.onError((err, c) => {

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["@cloudflare/workers-types"],
+    "lib": ["ES2021"],
+    "noEmit": true
+  },
+  "include": ["src/worker.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,4 +1,4 @@
-const DEFAULT_DOMAIN = 'agentpass.dev';
+const DEFAULT_DOMAIN = 'agent-mail.xyz';
 
 /**
  * Generate an email address for an agent.
