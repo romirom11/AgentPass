@@ -228,9 +228,17 @@ pnpm clean          # Clean build artifacts
 
 ## Documentation
 
+### Getting Started
+- [Quick Start Guide](docs/quick-start.md) — Deploy AgentPass in 5 minutes
+- [Full Deployment Guide](docs/deployment.md) — Complete production setup
+
+### Technical Docs
 - [System Architecture](docs/architecture.md)
+- [Email Service](docs/email-service.md)
 - [API Reference](docs/api-reference.md)
 - [SDK Integration Guide](docs/sdk-guide.md)
+
+### Project Docs
 - [Product Requirements](docs/prd.md)
 - [Development Roadmap](docs/roadmap.md)
 - [User Stories](docs/user-stories.md)
