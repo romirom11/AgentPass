@@ -43,7 +43,7 @@ export function registerIdentityTools(
       },
     },
     async ({ name, description, owner_email }) => {
-      const { passport } = identityService.createIdentity({
+      const { passport } = await identityService.createIdentity({
         name,
         description,
         owner_email,
@@ -80,7 +80,7 @@ export function registerIdentityTools(
         "List all agent identities stored locally. Returns passport_id, name, status, and created_at for each identity.",
     },
     async () => {
-      const identities = identityService.listIdentities();
+      const identities = await identityService.listIdentities();
 
       return {
         content: [
@@ -110,7 +110,7 @@ export function registerIdentityTools(
       },
     },
     async ({ passport_id }) => {
-      const passport = identityService.getIdentity(passport_id);
+      const passport = await identityService.getIdentity(passport_id);
 
       if (!passport) {
         return {

@@ -45,7 +45,7 @@ export class AuthService {
     const serviceDomain = this.extractDomain(input.service_url);
 
     // Step 1: Verify identity exists
-    const passport = this.identityService.getIdentity(input.passport_id);
+    const passport = await this.identityService.getIdentity(input.passport_id);
     if (!passport) {
       return {
         success: false,

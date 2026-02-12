@@ -55,6 +55,44 @@ interface PassportRow {
 export function createPassportsRouter(db: Client): Hono {
   const router = new Hono();
 
+  // GET /passports — list all passports
+  router.get("/", async (c) => {
+    const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
+    const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
+
+    const rowsResult = await db.execute({
+      sql: "SELECT * FROM passports ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      args: [limit, offset],
+    });
+    const rows = rowsResult.rows as unknown as PassportRow[];
+
+    const totalResult = await db.execute({
+      sql: "SELECT COUNT(*) as count FROM passports",
+      args: [],
+    });
+    const totalRow = totalResult.rows[0] as unknown as { count: number };
+
+    const passports = rows.map((row) => ({
+      id: row.id,
+      public_key: row.public_key,
+      owner_email: row.owner_email,
+      name: row.name,
+      description: row.description,
+      trust_score: row.trust_score,
+      status: row.status,
+      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+
+    return c.json({
+      passports,
+      total: totalRow.count,
+      limit,
+      offset,
+    });
+  });
+
   // POST /passports — register a new passport
   router.post("/", zValidator(RegisterPassportSchema), async (c) => {
     const body = getValidatedBody<RegisterPassportBody>(c);

@@ -55,6 +55,43 @@ export function createAuditRouter(db: Client): Hono {
     return result.rows.length > 0;
   }
 
+  // GET /audit — list all audit entries across all passports with pagination
+  router.get("/audit", async (c) => {
+    const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
+    const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
+
+    const rowsResult = await db.execute({
+      sql: "SELECT * FROM audit_log ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      args: [limit, offset],
+    });
+    const rows = rowsResult.rows as unknown as AuditRow[];
+
+    const totalResult = await db.execute({
+      sql: "SELECT COUNT(*) as count FROM audit_log",
+      args: [],
+    });
+    const totalRow = totalResult.rows[0] as unknown as { count: number };
+
+    const entries = rows.map((row) => ({
+      id: row.id,
+      passport_id: row.passport_id,
+      action: row.action,
+      service: row.service,
+      method: row.method,
+      result: row.result,
+      duration_ms: row.duration_ms,
+      details: row.details ? JSON.parse(row.details) : null,
+      created_at: row.created_at,
+    }));
+
+    return c.json({
+      entries,
+      total: totalRow.count,
+      limit,
+      offset,
+    });
+  });
+
   // POST /passports/:id/audit — append audit entry
   router.post("/:id/audit", zValidator(AppendAuditSchema), async (c) => {
     const passportId = c.req.param("id");

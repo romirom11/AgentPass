@@ -2,14 +2,17 @@
  * Identity management service.
  *
  * Manages agent identity creation, storage, and retrieval.
- * Currently uses an in-memory Map; a persistent SQLite vault will replace this.
+ * Uses encrypted SQLite vault for persistent storage.
  */
 
 import {
   generateKeyPair,
   createPassport,
+  CredentialVault,
   type KeyPair,
   type AgentPassport,
+  type StoredIdentity,
+  type IdentityListEntry,
 } from "@agentpass/core";
 
 export interface IdentitySummary {
@@ -19,26 +22,31 @@ export interface IdentitySummary {
   created_at: string;
 }
 
-export interface StoredIdentity {
-  passport: AgentPassport;
-  privateKey: string;
-  status: "active" | "revoked";
-}
-
 export class IdentityService {
-  private identities = new Map<string, StoredIdentity>();
+  private vault: CredentialVault | null = null;
+
+  /**
+   * Initialize the service with a vault instance.
+   *
+   * Must be called before any other method.
+   */
+  async init(vault: CredentialVault): Promise<void> {
+    this.vault = vault;
+  }
 
   /**
    * Create a new agent identity.
    *
    * Generates an Ed25519 key pair, builds a passport, and stores everything
-   * in memory. The private key never leaves the local store.
+   * in the encrypted vault. The private key never leaves the local store.
    */
-  createIdentity(input: {
+  async createIdentity(input: {
     name: string;
     description?: string;
     owner_email: string;
-  }): { passport: AgentPassport; publicKey: string } {
+  }): Promise<{ passport: AgentPassport; publicKey: string }> {
+    this.ensureInitialized();
+
     const keyPair: KeyPair = generateKeyPair();
     const passport = createPassport(
       {
@@ -49,11 +57,13 @@ export class IdentityService {
       keyPair.publicKey,
     );
 
-    this.identities.set(passport.passport_id, {
+    const storedIdentity: StoredIdentity = {
       passport,
       privateKey: keyPair.privateKey,
       status: "active",
-    });
+    };
+
+    await this.vault!.storeIdentity(storedIdentity);
 
     return { passport, publicKey: keyPair.publicKey };
   }
@@ -61,17 +71,11 @@ export class IdentityService {
   /**
    * List all stored identities (summary only, no secrets).
    */
-  listIdentities(): IdentitySummary[] {
-    const result: IdentitySummary[] = [];
-    for (const stored of this.identities.values()) {
-      result.push({
-        passport_id: stored.passport.passport_id,
-        name: stored.passport.identity.name,
-        status: stored.status,
-        created_at: stored.passport.identity.created_at,
-      });
-    }
-    return result;
+  async listIdentities(): Promise<IdentitySummary[]> {
+    this.ensureInitialized();
+
+    const entries: IdentityListEntry[] = await this.vault!.listIdentities();
+    return entries;
   }
 
   /**
@@ -79,8 +83,10 @@ export class IdentityService {
    *
    * Returns the full passport (public info only) or null if not found.
    */
-  getIdentity(passportId: string): AgentPassport | null {
-    const stored = this.identities.get(passportId);
+  async getIdentity(passportId: string): Promise<AgentPassport | null> {
+    this.ensureInitialized();
+
+    const stored = await this.vault!.getIdentity(passportId);
     if (!stored) {
       return null;
     }
@@ -92,19 +98,48 @@ export class IdentityService {
    *
    * Returns true if the identity existed and was removed, false otherwise.
    */
-  deleteIdentity(passportId: string): boolean {
-    return this.identities.delete(passportId);
+  async deleteIdentity(passportId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    return await this.vault!.deleteIdentity(passportId);
   }
 
   /**
    * Revoke an identity (mark as revoked, keep in store for audit).
    */
-  revokeIdentity(passportId: string): boolean {
-    const stored = this.identities.get(passportId);
+  async revokeIdentity(passportId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    const stored = await this.vault!.getIdentity(passportId);
     if (!stored) {
       return false;
     }
+
     stored.status = "revoked";
+    await this.vault!.storeIdentity(stored);
     return true;
+  }
+
+  /**
+   * Get the private key for a given passport ID.
+   *
+   * This is used internally for signing operations.
+   * The private key should never be exposed outside the service layer.
+   */
+  async getPrivateKey(passportId: string): Promise<string | null> {
+    this.ensureInitialized();
+
+    const stored = await this.vault!.getIdentity(passportId);
+    if (!stored) {
+      return null;
+    }
+    return stored.privateKey;
+  }
+
+  /** Throw if `init()` has not been called. */
+  private ensureInitialized(): void {
+    if (!this.vault) {
+      throw new Error("IdentityService is not initialized. Call init() first.");
+    }
   }
 }

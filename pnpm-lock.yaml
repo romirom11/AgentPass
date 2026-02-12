@@ -191,6 +191,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@agentpass/browser-service':
+        specifier: workspace:*
+        version: link:../browser-service
       '@agentpass/core':
         specifier: workspace:*
         version: link:../core
@@ -204,6 +207,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      playwright:
+        specifier: ^1.50.1
+        version: 1.58.2
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

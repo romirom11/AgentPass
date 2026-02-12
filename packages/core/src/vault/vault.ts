@@ -8,7 +8,7 @@
  */
 
 import Database from "better-sqlite3";
-import type { StoredCredential } from "../types/index.js";
+import type { StoredCredential, AgentPassport } from "../types/index.js";
 import { encrypt, decrypt, deriveVaultKey } from "../crypto/index.js";
 
 /** Metadata returned by `list()` — never includes passwords or cookies. */
@@ -17,6 +17,21 @@ export interface CredentialListEntry {
   username: string;
   email: string;
   registered_at: string;
+}
+
+/** Stored agent identity including passport and private key. */
+export interface StoredIdentity {
+  passport: AgentPassport;
+  privateKey: string;
+  status: "active" | "revoked";
+}
+
+/** Identity summary returned by `listIdentities()` — never includes private keys. */
+export interface IdentityListEntry {
+  passport_id: string;
+  name: string;
+  status: "active" | "revoked";
+  created_at: string;
 }
 
 /**
@@ -59,6 +74,15 @@ export class CredentialVault {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS credentials (
         service TEXT PRIMARY KEY,
+        encrypted_data TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS identities (
+        passport_id TEXT PRIMARY KEY,
         encrypted_data TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
@@ -168,6 +192,105 @@ export class CredentialVault {
     const row = this.db!.prepare(
       "SELECT 1 FROM credentials WHERE service = ?",
     ).get(service);
+
+    return row !== undefined;
+  }
+
+  /**
+   * Store (or update) an agent identity in the vault.
+   *
+   * The identity includes the passport, private key, and status. All data
+   * is encrypted at rest.
+   */
+  async storeIdentity(identity: StoredIdentity): Promise<void> {
+    this.ensureInitialized();
+
+    const now = new Date().toISOString();
+
+    const encryptedData = encrypt(JSON.stringify(identity), this.vaultKey!);
+
+    const stmt = this.db!.prepare(`
+      INSERT INTO identities (passport_id, encrypted_data, created_at, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(passport_id) DO UPDATE SET
+        encrypted_data = excluded.encrypted_data,
+        updated_at = excluded.updated_at
+    `);
+
+    stmt.run(identity.passport.passport_id, encryptedData, now, now);
+  }
+
+  /**
+   * Retrieve and decrypt an agent identity by passport ID.
+   *
+   * Returns `null` if no identity exists with that passport ID.
+   */
+  async getIdentity(passportId: string): Promise<StoredIdentity | null> {
+    this.ensureInitialized();
+
+    const row = this.db!.prepare(
+      "SELECT encrypted_data FROM identities WHERE passport_id = ?",
+    ).get(passportId) as { encrypted_data: string } | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    const json = decrypt(row.encrypted_data, this.vaultKey!);
+    return JSON.parse(json) as StoredIdentity;
+  }
+
+  /**
+   * List all stored identities without exposing private keys.
+   *
+   * Returns passport_id, name, status, and created_at only.
+   * Private keys are never included in the listing.
+   */
+  async listIdentities(): Promise<IdentityListEntry[]> {
+    this.ensureInitialized();
+
+    const rows = this.db!.prepare(
+      "SELECT encrypted_data FROM identities ORDER BY passport_id",
+    ).all() as { encrypted_data: string }[];
+
+    return rows.map((row) => {
+      const identity = JSON.parse(
+        decrypt(row.encrypted_data, this.vaultKey!),
+      ) as StoredIdentity;
+
+      return {
+        passport_id: identity.passport.passport_id,
+        name: identity.passport.identity.name,
+        status: identity.status,
+        created_at: identity.passport.identity.created_at,
+      };
+    });
+  }
+
+  /**
+   * Delete an identity by passport ID.
+   *
+   * Returns `true` if an identity was deleted, `false` if none existed.
+   */
+  async deleteIdentity(passportId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    const result = this.db!.prepare(
+      "DELETE FROM identities WHERE passport_id = ?",
+    ).run(passportId);
+
+    return result.changes > 0;
+  }
+
+  /**
+   * Check whether the vault contains an identity with the given passport ID.
+   */
+  async hasIdentity(passportId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    const row = this.db!.prepare(
+      "SELECT 1 FROM identities WHERE passport_id = ?",
+    ).get(passportId);
 
     return row !== undefined;
   }

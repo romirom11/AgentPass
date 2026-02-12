@@ -141,7 +141,7 @@ export class FallbackAuthService {
     const service = extractDomain(serviceUrl);
 
     // Step 1 -- verify identity
-    const passport = this.identityService.getIdentity(passportId);
+    const passport = await this.identityService.getIdentity(passportId);
     if (!passport) {
       return {
         success: false,

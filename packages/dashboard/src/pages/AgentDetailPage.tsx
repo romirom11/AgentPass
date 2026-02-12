@@ -1,6 +1,22 @@
 import { useParams, Link } from "react-router-dom";
 import StatusBadge from "../components/StatusBadge.js";
 import TrustScoreBar from "../components/TrustScoreBar.js";
+import { apiClient } from "../api/client.js";
+import { useApi } from "../hooks/useApi.js";
+
+function formatTimeAgo(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+}
 
 const agentsData: Record<
   string,
@@ -169,18 +185,58 @@ const agentsData: Record<
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const agent = id ? agentsData[id] : undefined;
 
-  if (!agent) {
+  const { data: passport, loading: passportLoading, error: passportError } = useApi(
+    () => apiClient.getPassport(id!),
+    [id]
+  );
+
+  const { data: auditData, loading: auditLoading, error: auditError } = useApi(
+    () => apiClient.getAuditLog(id!, { limit: 20 }),
+    [id]
+  );
+
+  // Fallback to mock data if API not available (temporary during development)
+  const agent = passport || (id ? agentsData[id] : undefined);
+  const auditLog = auditData?.entries || (id && agentsData[id] ? agentsData[id].auditLog : []);
+
+  if (passportLoading || auditLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
+          <p className="text-sm text-gray-500">Loading agent details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (passportError || !agent) {
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Agent not found
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            The agent you are looking for does not exist.
-          </p>
+          {passportError ? (
+            <>
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mx-auto">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Failed to load agent
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">{passportError}</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Agent not found
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                The agent you are looking for does not exist.
+              </p>
+            </>
+          )}
           <Link
             to="/agents"
             className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-800"
@@ -207,17 +263,17 @@ export default function AgentDetailPage() {
       <div className="mb-8 flex items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-100 text-xl font-bold text-indigo-700">
-            {agent.name.charAt(0).toUpperCase()}
+            {"name" in agent ? agent.name.charAt(0).toUpperCase() : agent.id.charAt(0).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
-                {agent.name}
+                {"name" in agent ? agent.name : agent.id}
               </h1>
               <StatusBadge status={agent.status} />
             </div>
             <p className="mt-0.5 font-mono text-sm text-gray-400">
-              {agent.passportId}
+              {"passportId" in agent ? agent.passportId : agent.id}
             </p>
           </div>
         </div>
@@ -240,7 +296,7 @@ export default function AgentDetailPage() {
                   Passport ID
                 </dt>
                 <dd className="mt-1 font-mono text-sm text-gray-900">
-                  {agent.passportId.slice(0, 20)}...
+                  {"passportId" in agent ? agent.passportId.slice(0, 20) : agent.id.slice(0, 20)}...
                 </dd>
               </div>
               <div>
@@ -248,7 +304,7 @@ export default function AgentDetailPage() {
                   Public Key
                 </dt>
                 <dd className="mt-1 font-mono text-sm text-gray-900">
-                  {agent.publicKey.slice(0, 24)}...
+                  {"publicKey" in agent ? agent.publicKey.slice(0, 24) : agent.public_key.slice(0, 24)}...
                 </dd>
               </div>
               <div>
@@ -256,7 +312,7 @@ export default function AgentDetailPage() {
                   Created
                 </dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {new Date(agent.createdAt).toLocaleDateString("en-US", {
+                  {new Date("createdAt" in agent ? agent.createdAt : agent.created_at).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -281,35 +337,53 @@ export default function AgentDetailPage() {
                 Audit Log
               </h2>
             </div>
-            <div className="divide-y divide-gray-100">
-              {agent.auditLog.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between px-6 py-3.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        entry.result === "success"
-                          ? "bg-emerald-500"
-                          : "bg-red-500"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-sm text-gray-900">
-                        <span className="font-mono text-xs font-medium uppercase text-gray-500">
-                          {entry.action}
-                        </span>{" "}
-                        on {entry.service}
-                      </p>
+            {auditError && (
+              <div className="px-6 py-4">
+                <p className="text-sm text-red-600">Failed to load audit log: {auditError}</p>
+              </div>
+            )}
+            {!auditError && auditLog.length === 0 && (
+              <div className="px-6 py-8 text-center">
+                <p className="text-sm text-gray-500">No activity yet</p>
+              </div>
+            )}
+            {!auditError && auditLog.length > 0 && (
+              <div className="divide-y divide-gray-100">
+                {auditLog.map((entry) => {
+                  const result = "result" in entry ? entry.result : "success";
+                  const timestamp = "timestamp" in entry ? entry.timestamp : formatTimeAgo(entry.created_at);
+                  return (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between px-6 py-3.5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            result === "success"
+                              ? "bg-emerald-500"
+                              : result === "failure"
+                              ? "bg-red-500"
+                              : "bg-yellow-500"
+                          }`}
+                        />
+                        <div>
+                          <p className="text-sm text-gray-900">
+                            <span className="font-mono text-xs font-medium uppercase text-gray-500">
+                              {entry.action}
+                            </span>
+                            {entry.service && ` on ${entry.service}`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {timestamp}
+                      </span>
                     </div>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {entry.timestamp}
-                  </span>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -322,31 +396,33 @@ export default function AgentDetailPage() {
             </h2>
             <div className="mb-3 text-center">
               <span className="text-4xl font-bold text-gray-900">
-                {agent.trustScore}
+                {"trustScore" in agent ? agent.trustScore : agent.trust_score}
               </span>
               <span className="text-lg text-gray-400">/100</span>
             </div>
-            <TrustScoreBar score={agent.trustScore} />
+            <TrustScoreBar score={"trustScore" in agent ? agent.trustScore : agent.trust_score} />
           </div>
 
           {/* Credentials */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Credentials
-              </h2>
+          {"credentials" in agent && agent.credentials.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 px-6 py-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Credentials
+                </h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {agent.credentials.map((cred) => (
+                  <div key={cred.service} className="px-6 py-3.5">
+                    <p className="text-sm font-medium text-gray-900">
+                      {cred.service}
+                    </p>
+                    <p className="text-xs text-gray-500">{cred.username}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-gray-100">
-              {agent.credentials.map((cred) => (
-                <div key={cred.service} className="px-6 py-3.5">
-                  <p className="text-sm font-medium text-gray-900">
-                    {cred.service}
-                  </p>
-                  <p className="text-xs text-gray-500">{cred.username}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

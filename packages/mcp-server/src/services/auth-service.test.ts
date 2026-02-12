@@ -1,17 +1,26 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { AuthService } from "./auth-service.js";
 import { IdentityService } from "./identity-service.js";
 import { CredentialService } from "./credential-service.js";
+import { createTestIdentityService } from "../test-helpers.js";
+import type { CredentialVault } from "@agentpass/core";
 
 describe("AuthService", () => {
   let authService: AuthService;
   let identityService: IdentityService;
   let credentialService: CredentialService;
+  let vault: CredentialVault;
 
-  beforeEach(() => {
-    identityService = new IdentityService();
+  beforeEach(async () => {
+    ({ identityService, vault } = await createTestIdentityService());
     credentialService = new CredentialService();
     authService = new AuthService(identityService, credentialService);
+  });
+
+  afterEach(() => {
+    if (vault) {
+      vault.close();
+    }
   });
 
   describe("authenticate", () => {
