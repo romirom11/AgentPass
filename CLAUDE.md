@@ -160,6 +160,7 @@ This project uses **beads** for issue tracking. Issues are stored in `.beads/iss
 
 ## Important Work Principles
 
+- **CRITICAL**: We build production-ready products, not MVPs. Don't suggest "MVP shortcuts", "simple for now", or "we can improve later". Implement proper solutions from the start. No half-measures, no placeholders, no "good enough for demo".
 - When uncertain or encountering errors, research documentation first (via web search or context7) before guessing
 - Always use the latest stable versions of dependencies
 - Maintain code cleanliness, modularity, and avoid duplicate code/logic
