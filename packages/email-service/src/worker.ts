@@ -198,35 +198,6 @@ async function parseIncomingEmail(message: any): Promise<StoredEmail> {
   };
 }
 
-function extractEmailContent(rawBody: string): { plain: string; html?: string } {
-  // Simple MIME parsing - looks for plain text and HTML parts
-  const parts = rawBody.split(/--[^\r\n]+/);
-
-  let plain = '';
-  let html: string | undefined;
-
-  for (const part of parts) {
-    if (part.includes('Content-Type: text/plain')) {
-      const bodyStart = part.indexOf('\r\n\r\n');
-      if (bodyStart !== -1) {
-        plain = part.slice(bodyStart + 4).trim();
-      }
-    } else if (part.includes('Content-Type: text/html')) {
-      const bodyStart = part.indexOf('\r\n\r\n');
-      if (bodyStart !== -1) {
-        html = part.slice(bodyStart + 4).trim();
-      }
-    }
-  }
-
-  // If no MIME parts found, treat entire body as plain text
-  if (!plain && !html) {
-    plain = rawBody;
-  }
-
-  return { plain, html };
-}
-
 async function notifyApiServer(
   email: StoredEmail,
   apiServerUrl: string,
