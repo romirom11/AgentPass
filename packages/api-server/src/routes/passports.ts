@@ -108,7 +108,14 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
       args: [passportId, body.public_key, owner.email, body.name, body.description, now, now],
     });
 
-    return c.json({ passport_id: passportId, created_at: now }, 201);
+    const sanitizedName = body.name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    const agentEmail = `${sanitizedName || "agent"}@agent-mail.xyz`;
+
+    return c.json({ passport_id: passportId, email: agentEmail, created_at: now }, 201);
   });
 
   // GET /passports/:id — get passport info

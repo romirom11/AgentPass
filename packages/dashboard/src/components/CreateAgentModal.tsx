@@ -64,7 +64,7 @@ export default function CreateAgentModal({
       setCreatedAgent({
         passportId: result.passport_id,
         name: formData.name,
-        email: `${formData.name}@agent-mail.xyz`,
+        email: result.email || `${formData.name}@agent-mail.xyz`,
         publicKey,
         privateKey,
       });

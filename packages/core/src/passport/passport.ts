@@ -12,7 +12,21 @@ export function generatePassportId(): string {
 }
 
 /**
+ * Generate a deterministic agent email address from the agent name.
+ * Sanitizes to lowercase alphanumeric + hyphens.
+ */
+function generateAgentEmail(agentName: string): string {
+  const sanitized = agentName
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${sanitized || "agent"}@agent-mail.xyz`;
+}
+
+/**
  * Create a new AgentPassport from input parameters and a generated key pair.
+ * Automatically assigns email capability based on agent name.
  */
 export function createPassport(
   input: CreatePassportInput,
@@ -21,6 +35,7 @@ export function createPassport(
   const now = new Date().toISOString();
   const passportId = generatePassportId();
   const ownerId = crypto.randomUUID();
+  const agentEmail = generateAgentEmail(input.name);
 
   return {
     passport_id: passportId,
@@ -36,7 +51,13 @@ export function createPassport(
       email: input.owner_email,
       verified: false,
     },
-    capabilities: input.capabilities ?? {},
+    capabilities: input.capabilities ?? {
+      email: {
+        address: agentEmail,
+        can_send: false,
+        can_receive: true,
+      },
+    },
     trust: {
       score: 0,
       level: "unverified",
