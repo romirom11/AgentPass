@@ -90,16 +90,29 @@ CREATE INDEX IF NOT EXISTS idx_sms_notifications_phone
 /**
  * Initialize the libsql database with schema tables.
  *
- * @param dbPath - Path to the SQLite file, or ":memory:" for in-memory databases.
+ * Supports three modes:
+ * - ":memory:" — in-memory database (for tests)
+ * - "libsql://..." or "https://..." — remote Turso database (production)
+ * - anything else — local SQLite file (development)
+ *
+ * @param dbPath - Database path, URL, or ":memory:"
  * @returns A configured @libsql/client Client instance.
  */
 export async function initDatabase(dbPath: string): Promise<Client> {
-  const url = dbPath === ":memory:" ? ":memory:" : `file:${dbPath}`;
-  const db = createClient({ url });
+  const isRemote = dbPath.startsWith("libsql://") || dbPath.startsWith("https://");
+  const isMemory = dbPath === ":memory:";
+  const url = isRemote ? dbPath : isMemory ? ":memory:" : `file:${dbPath}`;
 
-  // Enable WAL mode for better concurrent read performance
-  await db.execute("PRAGMA journal_mode = WAL");
-  await db.execute("PRAGMA foreign_keys = ON");
+  const db = createClient({
+    url,
+    authToken: isRemote ? process.env.AGENTPASS_DB_TOKEN : undefined,
+  });
+
+  // PRAGMA statements only for local SQLite, not remote Turso
+  if (!isRemote) {
+    await db.execute("PRAGMA journal_mode = WAL");
+    await db.execute("PRAGMA foreign_keys = ON");
+  }
 
   // Run migrations
   await db.execute(OWNERS_TABLE);
