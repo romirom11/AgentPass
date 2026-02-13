@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import type { Hono } from "hono";
 import { createApp } from "../index.js";
 import { generateKeyPair, sign } from "@agentpass/core";
 
 describe("Passport routes", () => {
   let app: Hono;
-  let db: Client;
+  let db: Sql;
   let authToken: string;
   let ownerEmail: string;
 
   beforeEach(async () => {
-    const created = await createApp(":memory:");
+    const created = await createApp(process.env.DATABASE_URL || "postgresql://localhost:5432/agentpass_test");
     app = created.app;
     db = created.db;
 
@@ -30,8 +30,8 @@ describe("Passport routes", () => {
     ownerEmail = registerData.email;
   });
 
-  afterEach(() => {
-    db.close();
+  afterEach(async () => {
+    await db.end();
   });
 
   // --- Helper ---

@@ -6,7 +6,7 @@
  */
 
 import { Hono } from 'hono';
-import type { Client } from '@libsql/client';
+import type { Sql } from '../db/schema.js';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 /**
@@ -17,7 +17,7 @@ function constantTimeCompare(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a, 'utf-8'), Buffer.from(b, 'utf-8'));
 }
 
-export function createWebhookRouter(db: Client): Hono {
+export function createWebhookRouter(db: Sql): Hono {
   const app = new Hono();
 
   /**
@@ -49,20 +49,10 @@ export function createWebhookRouter(db: Client): Hono {
     }
 
     // Store notification for MCP server to poll
-    await db.execute({
-      sql: `
-        INSERT INTO email_notifications (email_id, recipient, sender, subject, received_at, notified_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `,
-      args: [
-        payload.email_id,
-        payload.to.toLowerCase(),
-        payload.from.toLowerCase(),
-        payload.subject || '(no subject)',
-        payload.received_at,
-        new Date().toISOString(),
-      ],
-    });
+    await db`
+      INSERT INTO email_notifications (email_id, recipient, sender, subject, received_at)
+      VALUES (${payload.email_id}, ${payload.to.toLowerCase()}, ${payload.from.toLowerCase()}, ${payload.subject || '(no subject)'}, ${payload.received_at})
+    `;
 
     // TODO: In future, notify via WebSocket or SSE to MCP servers
     // For now, MCP server will poll GET /webhook/email-notifications/:address
@@ -80,44 +70,43 @@ export function createWebhookRouter(db: Client): Hono {
     const address = c.req.param('address').toLowerCase();
 
     // Get all unprocessed notifications for this address
-    const result = await db.execute({
-      sql: `
-        SELECT email_id, recipient, sender, subject, received_at, notified_at
-        FROM email_notifications
-        WHERE recipient = ? AND retrieved_at IS NULL
-        ORDER BY received_at DESC
-        LIMIT 50
-      `,
-      args: [address],
-    });
+    interface EmailNotificationRow {
+      email_id: string;
+      recipient: string;
+      sender: string;
+      subject: string;
+      received_at: Date;
+      notified_at: Date;
+    }
 
-    const notifications = result.rows.map((row) => ({
-      email_id: row.email_id as string,
-      recipient: row.recipient as string,
-      sender: row.sender as string,
-      subject: row.subject as string,
-      received_at: row.received_at as string,
-      notified_at: row.notified_at as string,
-    }));
+    const notifications = await db<EmailNotificationRow[]>`
+      SELECT email_id, recipient, sender, subject, received_at, notified_at
+      FROM email_notifications
+      WHERE recipient = ${address} AND retrieved_at IS NULL
+      ORDER BY received_at DESC
+      LIMIT 50
+    `;
 
     // Mark as retrieved
     if (notifications.length > 0) {
       const emailIds = notifications.map((n) => n.email_id);
-      // Safe: placeholders are generated from array length, not user input
-      // Each placeholder is '?' and values are passed via parameterized args
-      const placeholders = emailIds.map(() => '?').join(',');
-
-      await db.execute({
-        sql: `
-          UPDATE email_notifications
-          SET retrieved_at = ?
-          WHERE email_id IN (${placeholders})
-        `,
-        args: [new Date().toISOString(), ...emailIds],
-      });
+      await db`
+        UPDATE email_notifications
+        SET retrieved_at = NOW()
+        WHERE email_id = ANY(${emailIds})
+      `;
     }
 
-    return c.json({ notifications });
+    return c.json({
+      notifications: notifications.map(n => ({
+        email_id: n.email_id,
+        recipient: n.recipient,
+        sender: n.sender,
+        subject: n.subject,
+        received_at: n.received_at.toISOString(),
+        notified_at: n.notified_at.toISOString(),
+      }))
+    });
   });
 
   /**
@@ -175,24 +164,14 @@ export function createWebhookRouter(db: Client): Hono {
       });
     }
 
-    const receivedAt = new Date().toISOString();
+    const receivedAt = new Date();
 
     // Store notification for MCP server to poll
     try {
-      await db.execute({
-        sql: `
-          INSERT INTO sms_notifications (sms_id, phone_number, sender, body, received_at, notified_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `,
-        args: [
-          messageSid,
-          to,
-          from,
-          body || '',
-          receivedAt,
-          receivedAt,
-        ],
-      });
+      await db`
+        INSERT INTO sms_notifications (sms_id, phone_number, sender, body, received_at)
+        VALUES (${messageSid}, ${to}, ${from}, ${body || ''}, ${receivedAt})
+      `;
 
       console.log(`[SMS Webhook] Stored SMS ${messageSid} for ${to}`);
     } catch (error) {
@@ -218,41 +197,39 @@ export function createWebhookRouter(db: Client): Hono {
     const phoneNumber = c.req.param('phoneNumber');
 
     // Get all unprocessed notifications for this phone number
-    const result = await db.execute({
-      sql: `
-        SELECT sms_id, phone_number, sender, body, received_at, notified_at
-        FROM sms_notifications
-        WHERE phone_number = ? AND retrieved_at IS NULL
-        ORDER BY received_at DESC
-        LIMIT 50
-      `,
-      args: [phoneNumber],
-    });
+    interface SmsNotificationRow {
+      sms_id: string;
+      phone_number: string;
+      sender: string;
+      body: string;
+      received_at: Date;
+    }
 
-    const notifications = result.rows.map((row) => ({
-      id: row.sms_id as string,
-      to: row.phone_number as string,
-      from: row.sender as string,
-      body: row.body as string,
-      received_at: row.received_at as string,
-    }));
+    const rows = await db<SmsNotificationRow[]>`
+      SELECT sms_id, phone_number, sender, body, received_at
+      FROM sms_notifications
+      WHERE phone_number = ${phoneNumber} AND retrieved_at IS NULL
+      ORDER BY received_at DESC
+      LIMIT 50
+    `;
 
     // Mark as retrieved
-    if (notifications.length > 0) {
-      const smsIds = notifications.map((n) => n.id);
-      // Safe: placeholders are generated from array length, not user input
-      // Each placeholder is '?' and values are passed via parameterized args
-      const placeholders = smsIds.map(() => '?').join(',');
-
-      await db.execute({
-        sql: `
-          UPDATE sms_notifications
-          SET retrieved_at = ?
-          WHERE sms_id IN (${placeholders})
-        `,
-        args: [new Date().toISOString(), ...smsIds],
-      });
+    if (rows.length > 0) {
+      const smsIds = rows.map((n) => n.sms_id);
+      await db`
+        UPDATE sms_notifications
+        SET retrieved_at = NOW()
+        WHERE sms_id = ANY(${smsIds})
+      `;
     }
+
+    const notifications = rows.map((row) => ({
+      id: row.sms_id,
+      to: row.phone_number,
+      from: row.sender,
+      body: row.body,
+      received_at: row.received_at.toISOString(),
+    }));
 
     return c.json({ notifications });
   });

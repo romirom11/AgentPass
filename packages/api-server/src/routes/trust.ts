@@ -7,7 +7,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { requireAuth, type OwnerPayload, type AuthVariables } from "../middleware/auth.js";
 import {
@@ -31,27 +31,17 @@ interface PassportRow {
   owner_email: string;
   trust_score: number;
   status: string;
-  metadata: string | null;
-  created_at: string;
+  metadata: Record<string, unknown> | null;
+  created_at: Date;
 }
 
-interface AuditCountRow {
-  count: number;
-}
 
 /**
- * Parse the metadata JSON column, returning a typed object with
+ * Parse the metadata JSONB column, returning a typed object with
  * known trust-related fields.
  */
-function parseMetadata(raw: string | null): Record<string, unknown> {
-  if (!raw) {
-    return {};
-  }
-  try {
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parseMetadata(raw: Record<string, unknown> | null): Record<string, unknown> {
+  return raw ?? {};
 }
 
 /**
@@ -59,11 +49,11 @@ function parseMetadata(raw: string | null): Record<string, unknown> {
  */
 function buildTrustFactors(
   metadata: Record<string, unknown>,
-  createdAt: string,
+  createdAt: Date,
   successfulAuths: number,
 ): TrustFactors {
   const ageDays = Math.floor(
-    (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24),
+    (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   return {
@@ -78,19 +68,18 @@ function buildTrustFactors(
 /**
  * Create the trust router bound to the given database instance.
  */
-export function createTrustRouter(db: Client): Hono<{ Variables: AuthVariables }> {
+export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   const router = new Hono<{ Variables: AuthVariables }>();
 
   /**
    * Count successful verifications for a passport based on audit log entries.
    */
   async function getSuccessfulAuths(passportId: string): Promise<number> {
-    const result = await db.execute({
-      sql: "SELECT COUNT(*) as count FROM audit_log WHERE passport_id = ? AND action = 'verify' AND result = 'success'",
-      args: [passportId],
-    });
-    const row = result.rows[0] as unknown as AuditCountRow | undefined;
-    return row?.count ?? 0;
+    const rows = await db<{ count: number }[]>`
+      SELECT COUNT(*) as count FROM audit_log
+      WHERE passport_id = ${passportId} AND action = 'verify' AND result = 'success'
+    `;
+    return Number(rows[0]?.count ?? 0);
   }
 
   // GET /passports/:id/trust — return current trust details
@@ -98,11 +87,11 @@ export function createTrustRouter(db: Client): Hono<{ Variables: AuthVariables }
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
-    const result = await db.execute({
-      sql: "SELECT id, owner_email, trust_score, status, metadata, created_at FROM passports WHERE id = ?",
-      args: [passportId],
-    });
-    const row = result.rows[0] as unknown as PassportRow | undefined;
+    const rows = await db<PassportRow[]>`
+      SELECT id, owner_email, trust_score, status, metadata, created_at
+      FROM passports WHERE id = ${passportId}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -138,11 +127,11 @@ export function createTrustRouter(db: Client): Hono<{ Variables: AuthVariables }
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
-    const result = await db.execute({
-      sql: "SELECT id, owner_email, trust_score, status, metadata, created_at FROM passports WHERE id = ?",
-      args: [passportId],
-    });
-    const row = result.rows[0] as unknown as PassportRow | undefined;
+    const rows = await db<PassportRow[]>`
+      SELECT id, owner_email, trust_score, status, metadata, created_at
+      FROM passports WHERE id = ${passportId}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -179,11 +168,12 @@ export function createTrustRouter(db: Client): Hono<{ Variables: AuthVariables }
     const newScore = calculateTrustScore(factors);
 
     // Persist changes
-    const now = new Date().toISOString();
-    await db.execute({
-      sql: "UPDATE passports SET trust_score = ?, metadata = ?, updated_at = ? WHERE id = ?",
-      args: [newScore, JSON.stringify(metadata), now, passportId],
-    });
+    const metadataJson = JSON.stringify(metadata);
+    await db`
+      UPDATE passports
+      SET trust_score = ${newScore}, metadata = ${metadataJson}::jsonb, updated_at = NOW()
+      WHERE id = ${passportId}
+    `;
 
     return c.json({
       passport_id: row.id,

@@ -6,7 +6,7 @@
  */
 
 import { Hono } from "hono";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 
 const VERSION = "0.1.0";
 const startTime = Date.now();
@@ -14,9 +14,9 @@ const startTime = Date.now();
 /**
  * Create the health-check router.
  *
- * @param db - The @libsql/client Client instance used for readiness probing.
+ * @param db - The postgres instance used for readiness probing.
  */
-export function createHealthRouter(db: Client) {
+export function createHealthRouter(db: Sql) {
   const router = new Hono();
 
   router.get("/health", (c) => {
@@ -31,7 +31,7 @@ export function createHealthRouter(db: Client) {
   router.get("/ready", async (c) => {
     try {
       // Lightweight probe: execute a no-op query
-      await db.execute("SELECT 1");
+      await db`SELECT 1`;
       return c.json({ ready: true });
     } catch {
       return c.json({ ready: false, error: "database unavailable" }, 503);

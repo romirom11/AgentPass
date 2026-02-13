@@ -1,129 +1,116 @@
 /**
- * SQLite database schema and initialization for AgentPass API Server.
+ * PostgreSQL database schema and initialization for AgentPass API Server.
  *
- * Uses @libsql/client for Turso-compatible, pure-JS SQLite access.
- * Supports both local file-based SQLite and Turso (libsql) in production.
+ * Uses `postgres` package (porsager/postgres) for connection pooling and
+ * query execution via safe tagged template literals.
  */
 
-import { createClient, type Client } from "@libsql/client";
+import postgres from "postgres";
 
-const OWNERS_TABLE = `
-CREATE TABLE IF NOT EXISTS owners (
-  id            TEXT PRIMARY KEY,
-  email         TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  name          TEXT NOT NULL DEFAULT '',
-  verified      INTEGER NOT NULL DEFAULT 0,
-  created_at    TEXT NOT NULL,
-  updated_at    TEXT NOT NULL
-)`;
-
-const OWNERS_EMAIL_INDEX = `
-CREATE INDEX IF NOT EXISTS idx_owners_email ON owners(email)
-`;
-
-const PASSPORTS_TABLE = `
-CREATE TABLE IF NOT EXISTS passports (
-  id          TEXT PRIMARY KEY,
-  public_key  TEXT NOT NULL,
-  owner_email TEXT NOT NULL,
-  name        TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  trust_score INTEGER NOT NULL DEFAULT 0,
-  status      TEXT NOT NULL DEFAULT 'active',
-  metadata    TEXT,
-  created_at  TEXT NOT NULL,
-  updated_at  TEXT NOT NULL
-)`;
-
-const AUDIT_LOG_TABLE = `
-CREATE TABLE IF NOT EXISTS audit_log (
-  id          TEXT PRIMARY KEY,
-  passport_id TEXT NOT NULL,
-  action      TEXT NOT NULL,
-  service     TEXT NOT NULL DEFAULT '',
-  method      TEXT NOT NULL DEFAULT '',
-  result      TEXT NOT NULL DEFAULT 'success',
-  duration_ms INTEGER NOT NULL DEFAULT 0,
-  details     TEXT,
-  created_at  TEXT NOT NULL,
-  FOREIGN KEY (passport_id) REFERENCES passports(id)
-)`;
-
-const AUDIT_LOG_INDEX = `
-CREATE INDEX IF NOT EXISTS idx_audit_log_passport_id
-  ON audit_log(passport_id, created_at DESC)
-`;
-
-const EMAIL_NOTIFICATIONS_TABLE = `
-CREATE TABLE IF NOT EXISTS email_notifications (
-  email_id     TEXT PRIMARY KEY,
-  recipient    TEXT NOT NULL,
-  sender       TEXT NOT NULL,
-  subject      TEXT NOT NULL DEFAULT '',
-  received_at  TEXT NOT NULL,
-  notified_at  TEXT NOT NULL,
-  retrieved_at TEXT
-)`;
-
-const EMAIL_NOTIFICATIONS_INDEX = `
-CREATE INDEX IF NOT EXISTS idx_email_notifications_recipient
-  ON email_notifications(recipient, received_at DESC)
-`;
-
-const SMS_NOTIFICATIONS_TABLE = `
-CREATE TABLE IF NOT EXISTS sms_notifications (
-  sms_id       TEXT PRIMARY KEY,
-  phone_number TEXT NOT NULL,
-  sender       TEXT NOT NULL,
-  body         TEXT NOT NULL,
-  received_at  TEXT NOT NULL,
-  notified_at  TEXT NOT NULL,
-  retrieved_at TEXT
-)`;
-
-const SMS_NOTIFICATIONS_INDEX = `
-CREATE INDEX IF NOT EXISTS idx_sms_notifications_phone
-  ON sms_notifications(phone_number, received_at DESC)
-`;
+export type Sql = ReturnType<typeof postgres>;
 
 /**
- * Initialize the libsql database with schema tables.
+ * Initialize the PostgreSQL database with schema tables.
  *
- * Supports three modes:
- * - ":memory:" — in-memory database (for tests)
- * - "libsql://..." or "https://..." — remote Turso database (production)
- * - anything else — local SQLite file (development)
- *
- * @param dbPath - Database path, URL, or ":memory:"
- * @returns A configured @libsql/client Client instance.
+ * @param connectionString - PostgreSQL connection string (e.g., postgresql://user:pass@host:5432/db)
+ * @returns A configured postgres instance with connection pooling.
  */
-export async function initDatabase(dbPath: string): Promise<Client> {
-  const isRemote = dbPath.startsWith("libsql://") || dbPath.startsWith("https://");
-  const isMemory = dbPath === ":memory:";
-  const url = isRemote ? dbPath : isMemory ? ":memory:" : `file:${dbPath}`;
+export async function initDatabase(connectionString?: string): Promise<Sql> {
+  const sql = postgres(
+    connectionString || process.env.DATABASE_URL || "postgresql://localhost:5432/agentpass",
+    {
+      max: 10, // connection pool size
+      idle_timeout: 20,
+      connect_timeout: 10,
+    },
+  );
 
-  const db = createClient({
-    url,
-    authToken: isRemote ? process.env.AGENTPASS_DB_TOKEN : undefined,
-  });
+  // Create owners table
+  await sql`
+    CREATE TABLE IF NOT EXISTS owners (
+      id            TEXT PRIMARY KEY,
+      email         TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name          TEXT NOT NULL DEFAULT '',
+      verified      BOOLEAN NOT NULL DEFAULT false,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 
-  // PRAGMA statements only for local SQLite, not remote Turso
-  if (!isRemote) {
-    await db.execute("PRAGMA journal_mode = WAL");
-    await db.execute("PRAGMA foreign_keys = ON");
-  }
+  await sql`CREATE INDEX IF NOT EXISTS idx_owners_email ON owners(email)`;
 
-  // Run migrations
-  await db.execute(OWNERS_TABLE);
-  await db.execute(OWNERS_EMAIL_INDEX);
-  await db.execute(PASSPORTS_TABLE);
-  await db.execute(AUDIT_LOG_TABLE);
-  await db.execute(AUDIT_LOG_INDEX);
-  await db.execute(EMAIL_NOTIFICATIONS_TABLE);
-  await db.execute(EMAIL_NOTIFICATIONS_INDEX);
-  await db.execute(SMS_NOTIFICATIONS_TABLE);
-  await db.execute(SMS_NOTIFICATIONS_INDEX);
+  // Create passports table
+  await sql`
+    CREATE TABLE IF NOT EXISTS passports (
+      id          TEXT PRIMARY KEY,
+      public_key  TEXT NOT NULL,
+      owner_email TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      trust_score INTEGER NOT NULL DEFAULT 0,
+      status      TEXT NOT NULL DEFAULT 'active',
+      metadata    JSONB,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 
-  return db;
+  // Create audit_log table
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id          TEXT PRIMARY KEY,
+      passport_id TEXT NOT NULL REFERENCES passports(id),
+      action      TEXT NOT NULL,
+      service     TEXT NOT NULL DEFAULT '',
+      method      TEXT NOT NULL DEFAULT '',
+      result      TEXT NOT NULL DEFAULT 'success',
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      details     JSONB,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_audit_log_passport_id
+      ON audit_log(passport_id, created_at DESC)
+  `;
+
+  // Create email_notifications table
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_notifications (
+      email_id     TEXT PRIMARY KEY,
+      recipient    TEXT NOT NULL,
+      sender       TEXT NOT NULL,
+      subject      TEXT NOT NULL DEFAULT '',
+      received_at  TIMESTAMPTZ NOT NULL,
+      notified_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      retrieved_at TIMESTAMPTZ
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_email_notifications_recipient
+      ON email_notifications(recipient, received_at DESC)
+  `;
+
+  // Create sms_notifications table
+  await sql`
+    CREATE TABLE IF NOT EXISTS sms_notifications (
+      sms_id       TEXT PRIMARY KEY,
+      phone_number TEXT NOT NULL,
+      sender       TEXT NOT NULL,
+      body         TEXT NOT NULL,
+      received_at  TIMESTAMPTZ NOT NULL,
+      notified_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      retrieved_at TIMESTAMPTZ
+    )
+  `;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_sms_notifications_phone
+      ON sms_notifications(phone_number, received_at DESC)
+  `;
+
+  return sql;
 }

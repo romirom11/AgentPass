@@ -8,7 +8,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { verifyChallenge } from "@agentpass/core";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { rateLimiters } from "../middleware/rate-limiter.js";
 
@@ -34,18 +34,17 @@ interface PassportVerifyRow {
 /**
  * Create the verify router bound to the given database instance.
  */
-export function createVerifyRouter(db: Client): Hono {
+export function createVerifyRouter(db: Sql): Hono {
   const router = new Hono();
 
   // POST /verify — verify passport signature
   router.post("/", rateLimiters.verifyPassport, zValidator(VerifySchema), async (c) => {
     const body = getValidatedBody<VerifyBody>(c);
 
-    const result = await db.execute({
-      sql: "SELECT id, public_key, trust_score, status FROM passports WHERE id = ?",
-      args: [body.passport_id],
-    });
-    const row = result.rows[0] as unknown as PassportVerifyRow | undefined;
+    const rows = await db<PassportVerifyRow[]>`
+      SELECT id, public_key, trust_score, status FROM passports WHERE id = ${body.passport_id}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -77,10 +76,9 @@ export function createVerifyRouter(db: Client): Hono {
 
     // Increment successful auths trust score on valid verification
     if (valid) {
-      await db.execute({
-        sql: "UPDATE passports SET trust_score = trust_score + 1, updated_at = ? WHERE id = ?",
-        args: [new Date().toISOString(), row.id],
-      });
+      await db`
+        UPDATE passports SET trust_score = trust_score + 1, updated_at = NOW() WHERE id = ${row.id}
+      `;
     }
 
     return c.json({

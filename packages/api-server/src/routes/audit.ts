@@ -8,7 +8,7 @@
 import crypto from "node:crypto";
 import { Hono } from "hono";
 import { z } from "zod";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { requireAuth, type OwnerPayload, type AuthVariables } from "../middleware/auth.js";
 
@@ -35,14 +35,14 @@ interface AuditRow {
   method: string;
   result: string;
   duration_ms: number;
-  details: string | null;
-  created_at: string;
+  details: Record<string, unknown> | null;
+  created_at: Date;
 }
 
 /**
  * Create the audit router bound to the given database instance.
  */
-export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }> {
+export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   const router = new Hono<{ Variables: AuthVariables }>();
 
   /**
@@ -50,12 +50,10 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
    * Returns the owner_email if found, null otherwise.
    */
   async function getPassportOwner(passportId: string): Promise<string | null> {
-    const result = await db.execute({
-      sql: "SELECT owner_email FROM passports WHERE id = ?",
-      args: [passportId],
-    });
-    const row = result.rows[0] as unknown as { owner_email: string } | undefined;
-    return row?.owner_email ?? null;
+    const rows = await db<{ owner_email: string }[]>`
+      SELECT owner_email FROM passports WHERE id = ${passportId}
+    `;
+    return rows[0]?.owner_email ?? null;
   }
 
   // GET /audit — list all audit entries for owner's passports with pagination
@@ -65,22 +63,20 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
 
     // Filter audit entries by owner's passports
-    const rowsResult = await db.execute({
-      sql: `SELECT a.* FROM audit_log a
-            JOIN passports p ON a.passport_id = p.id
-            WHERE p.owner_email = ?
-            ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
-      args: [owner.email, limit, offset],
-    });
-    const rows = rowsResult.rows as unknown as AuditRow[];
+    const rows = await db<AuditRow[]>`
+      SELECT a.* FROM audit_log a
+      JOIN passports p ON a.passport_id = p.id
+      WHERE p.owner_email = ${owner.email}
+      ORDER BY a.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    const totalResult = await db.execute({
-      sql: `SELECT COUNT(*) as count FROM audit_log a
-            JOIN passports p ON a.passport_id = p.id
-            WHERE p.owner_email = ?`,
-      args: [owner.email],
-    });
-    const totalRow = totalResult.rows[0] as unknown as { count: number };
+    const totalRows = await db<{ count: number }[]>`
+      SELECT COUNT(*) as count FROM audit_log a
+      JOIN passports p ON a.passport_id = p.id
+      WHERE p.owner_email = ${owner.email}
+    `;
+    const total = Number(totalRows[0].count);
 
     const entries = rows.map((row) => ({
       id: row.id,
@@ -90,13 +86,13 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
       method: row.method,
       result: row.result,
       duration_ms: row.duration_ms,
-      details: row.details ? JSON.parse(row.details) : null,
-      created_at: row.created_at,
+      details: row.details,
+      created_at: row.created_at.toISOString(),
     }));
 
     return c.json({
       entries,
-      total: totalRow.count,
+      total,
       limit,
       offset,
     });
@@ -125,25 +121,15 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
 
     const body = getValidatedBody<AppendAuditBody>(c);
     const entryId = crypto.randomUUID();
-    const now = new Date().toISOString();
 
-    await db.execute({
-      sql: `INSERT INTO audit_log (id, passport_id, action, service, method, result, duration_ms, details, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        entryId,
-        passportId,
-        body.action,
-        body.service,
-        body.method,
-        body.result,
-        body.duration_ms,
-        body.details ? JSON.stringify(body.details) : null,
-        now,
-      ],
-    });
+    const detailsJson = body.details ? JSON.stringify(body.details) : null;
+    const result = await db<{ created_at: Date }[]>`
+      INSERT INTO audit_log (id, passport_id, action, service, method, result, duration_ms, details)
+      VALUES (${entryId}, ${passportId}, ${body.action}, ${body.service}, ${body.method}, ${body.result}, ${body.duration_ms}, ${detailsJson}::jsonb)
+      RETURNING created_at
+    `;
 
-    return c.json({ id: entryId, created_at: now }, 201);
+    return c.json({ id: entryId, created_at: result[0].created_at.toISOString() }, 201);
   });
 
   // GET /passports/:id/audit — list audit entries with pagination
@@ -170,17 +156,17 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
     const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
 
-    const rowsResult = await db.execute({
-      sql: "SELECT * FROM audit_log WHERE passport_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-      args: [passportId, limit, offset],
-    });
-    const rows = rowsResult.rows as unknown as AuditRow[];
+    const rows = await db<AuditRow[]>`
+      SELECT * FROM audit_log
+      WHERE passport_id = ${passportId}
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    const totalResult = await db.execute({
-      sql: "SELECT COUNT(*) as count FROM audit_log WHERE passport_id = ?",
-      args: [passportId],
-    });
-    const totalRow = totalResult.rows[0] as unknown as { count: number };
+    const totalRows = await db<{ count: number }[]>`
+      SELECT COUNT(*) as count FROM audit_log WHERE passport_id = ${passportId}
+    `;
+    const total = Number(totalRows[0].count);
 
     const entries = rows.map((row) => ({
       id: row.id,
@@ -190,13 +176,13 @@ export function createAuditRouter(db: Client): Hono<{ Variables: AuthVariables }
       method: row.method,
       result: row.result,
       duration_ms: row.duration_ms,
-      details: row.details ? JSON.parse(row.details) : null,
-      created_at: row.created_at,
+      details: row.details,
+      created_at: row.created_at.toISOString(),
     }));
 
     return c.json({
       entries,
-      total: totalRow.count,
+      total,
       limit,
       offset,
     });

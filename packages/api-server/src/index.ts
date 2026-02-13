@@ -8,7 +8,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
-import type { Client } from "@libsql/client";
+import type { Sql } from "./db/schema.js";
 import { initDatabase } from "./db/schema.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createPassportsRouter } from "./routes/passports.js";
@@ -22,15 +22,15 @@ import { rateLimiters } from "./middleware/rate-limiter.js";
 import { requestLogger } from "./middleware/request-logging.js";
 
 const PORT = parseInt(process.env.AGENTPASS_PORT || "3846", 10);
-const DB_PATH = process.env.AGENTPASS_DB_PATH || "agentpass.db";
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://localhost:5432/agentpass";
 
 /**
  * Create and configure the Hono application.
  *
- * Accepts an optional database path so tests can pass ":memory:".
+ * Accepts an optional database connection string for tests.
  */
-export async function createApp(dbPath: string = DB_PATH): Promise<{ app: Hono; db: Client }> {
-  const db = await initDatabase(dbPath);
+export async function createApp(connectionString: string = DATABASE_URL): Promise<{ app: Hono; db: Sql }> {
+  const db = await initDatabase(connectionString);
   const app = new Hono();
 
   // --- Global middleware ---

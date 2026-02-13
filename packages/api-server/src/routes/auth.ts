@@ -10,7 +10,7 @@
 import crypto from "node:crypto";
 import { Hono } from "hono";
 import { z } from "zod";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import bcrypt from "bcryptjs";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { signJwt, requireAuth, type OwnerPayload, type AuthVariables } from "../middleware/auth.js";
@@ -44,9 +44,9 @@ interface OwnerRow {
   email: string;
   password_hash: string;
   name: string;
-  verified: number;
-  created_at: string;
-  updated_at: string;
+  verified: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
 // --- Constants ---
@@ -56,7 +56,7 @@ const BCRYPT_SALT_ROUNDS = 12;
 /**
  * Create the auth router bound to the given database instance.
  */
-export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }> {
+export function createAuthRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   const router = new Hono<{ Variables: AuthVariables }>();
 
   // POST /auth/register — Create owner account
@@ -64,12 +64,11 @@ export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }>
     const body = getValidatedBody<RegisterBody>(c);
 
     // Check if email already exists
-    const existingResult = await db.execute({
-      sql: "SELECT id FROM owners WHERE email = ?",
-      args: [body.email],
-    });
+    const existing = await db<Pick<OwnerRow, "id">[]>`
+      SELECT id FROM owners WHERE email = ${body.email}
+    `;
 
-    if (existingResult.rows.length > 0) {
+    if (existing.length > 0) {
       return c.json(
         { error: "Email already registered", code: "EMAIL_EXISTS" },
         409,
@@ -81,13 +80,11 @@ export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }>
 
     // Create owner
     const ownerId = crypto.randomUUID();
-    const now = new Date().toISOString();
 
-    await db.execute({
-      sql: `INSERT INTO owners (id, email, password_hash, name, verified, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 0, ?, ?)`,
-      args: [ownerId, body.email, passwordHash, body.name, now, now],
-    });
+    await db`
+      INSERT INTO owners (id, email, password_hash, name, verified)
+      VALUES (${ownerId}, ${body.email}, ${passwordHash}, ${body.name}, false)
+    `;
 
     // Auto-login: generate JWT token
     const token = await signJwt({
@@ -111,11 +108,10 @@ export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }>
     const body = getValidatedBody<LoginBody>(c);
 
     // Look up owner by email
-    const result = await db.execute({
-      sql: "SELECT * FROM owners WHERE email = ?",
-      args: [body.email],
-    });
-    const row = result.rows[0] as unknown as OwnerRow | undefined;
+    const rows = await db<OwnerRow[]>`
+      SELECT * FROM owners WHERE email = ${body.email}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -153,11 +149,10 @@ export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }>
     const owner = c.get("owner") as OwnerPayload;
 
     // Look up full owner info
-    const result = await db.execute({
-      sql: "SELECT * FROM owners WHERE id = ?",
-      args: [owner.owner_id],
-    });
-    const row = result.rows[0] as unknown as OwnerRow | undefined;
+    const rows = await db<OwnerRow[]>`
+      SELECT * FROM owners WHERE id = ${owner.owner_id}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -170,8 +165,8 @@ export function createAuthRouter(db: Client): Hono<{ Variables: AuthVariables }>
       owner_id: row.id,
       email: row.email,
       name: row.name,
-      verified: row.verified === 1,
-      created_at: row.created_at,
+      verified: row.verified,
+      created_at: row.created_at.toISOString(),
     });
   });
 

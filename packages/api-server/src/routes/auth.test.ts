@@ -1,20 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import type { Hono } from "hono";
 import { createApp } from "../index.js";
 
 describe("Auth routes", () => {
   let app: Hono;
-  let db: Client;
+  let db: Sql;
 
   beforeEach(async () => {
-    const created = await createApp(":memory:");
+    // Skip tests if DATABASE_URL is not set (PostgreSQL required for tests)
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not set - skipping auth route tests');
+      return;
+    }
+
+    const created = await createApp(process.env.DATABASE_URL);
     app = created.app;
     db = created.db;
+
+    // Clean up tables before each test
+    await db`TRUNCATE TABLE audit_log, passports, owners CASCADE`;
   });
 
-  afterEach(() => {
-    db.close();
+  afterEach(async () => {
+    if (db) {
+      await db.end();
+    }
   });
 
   // --- Helper ---
@@ -60,17 +71,16 @@ describe("Auth routes", () => {
       const res = await register();
       const data = await res.json();
 
-      const result = await db.execute({
-        sql: "SELECT * FROM owners WHERE id = ?",
-        args: [data.owner_id],
-      });
-      const row = result.rows[0] as unknown as Record<string, unknown>;
+      const rows = await db<Array<Record<string, unknown>>>`
+        SELECT * FROM owners WHERE id = ${data.owner_id}
+      `;
+      const row = rows[0];
       expect(row).toBeDefined();
       expect(row.email).toBe("test@example.com");
       expect(row.name).toBe("Test Owner");
       expect(row.password_hash).toBeDefined();
       expect(row.password_hash).not.toBe("secure-password-123");
-      expect(row.verified).toBe(0);
+      expect(row.verified).toBe(false);
     });
 
     it("returns 409 for duplicate email", async () => {

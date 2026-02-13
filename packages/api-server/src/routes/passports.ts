@@ -9,7 +9,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { generatePassportId, verify } from "@agentpass/core";
-import type { Client } from "@libsql/client";
+import type { Sql } from "../db/schema.js";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { rateLimiters } from "../middleware/rate-limiter.js";
 import { requireAuth, type OwnerPayload, type AuthVariables } from "../middleware/auth.js";
@@ -45,15 +45,15 @@ interface PassportRow {
   description: string;
   trust_score: number;
   status: string;
-  metadata: string | null;
-  created_at: string;
-  updated_at: string;
+  metadata: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 /**
  * Create the passports router bound to the given database instance.
  */
-export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariables }> {
+export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   const router = new Hono<{ Variables: AuthVariables }>();
 
   // GET /passports — list all passports (filtered by owner)
@@ -62,17 +62,17 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
     const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
 
-    const rowsResult = await db.execute({
-      sql: "SELECT * FROM passports WHERE owner_email = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-      args: [owner.email, limit, offset],
-    });
-    const rows = rowsResult.rows as unknown as PassportRow[];
+    const rows = await db<PassportRow[]>`
+      SELECT * FROM passports
+      WHERE owner_email = ${owner.email}
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    const totalResult = await db.execute({
-      sql: "SELECT COUNT(*) as count FROM passports WHERE owner_email = ?",
-      args: [owner.email],
-    });
-    const totalRow = totalResult.rows[0] as unknown as { count: number };
+    const totalRows = await db<{ count: number }[]>`
+      SELECT COUNT(*) as count FROM passports WHERE owner_email = ${owner.email}
+    `;
+    const total = Number(totalRows[0].count);
 
     const passports = rows.map((row) => ({
       id: row.id,
@@ -82,14 +82,14 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
       description: row.description,
       trust_score: row.trust_score,
       status: row.status,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      metadata: row.metadata,
+      created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
     }));
 
     return c.json({
       passports,
-      total: totalRow.count,
+      total,
       limit,
       offset,
     });
@@ -100,13 +100,12 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
     const owner = c.get("owner") as OwnerPayload;
     const body = getValidatedBody<RegisterPassportBody>(c);
     const passportId = generatePassportId();
-    const now = new Date().toISOString();
 
-    await db.execute({
-      sql: `INSERT INTO passports (id, public_key, owner_email, name, description, trust_score, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 0, 'active', ?, ?)`,
-      args: [passportId, body.public_key, owner.email, body.name, body.description, now, now],
-    });
+    const result = await db<{ created_at: Date }[]>`
+      INSERT INTO passports (id, public_key, owner_email, name, description, trust_score, status)
+      VALUES (${passportId}, ${body.public_key}, ${owner.email}, ${body.name}, ${body.description}, 0, 'active')
+      RETURNING created_at
+    `;
 
     const sanitizedName = body.name
       .toLowerCase()
@@ -115,18 +114,22 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
       .replace(/^-|-$/g, "");
     const agentEmail = `${sanitizedName || "agent"}@agent-mail.xyz`;
 
-    return c.json({ passport_id: passportId, email: agentEmail, created_at: now }, 201);
+    return c.json({
+      passport_id: passportId,
+      email: agentEmail,
+      created_at: result[0].created_at.toISOString()
+    }, 201);
   });
 
   // GET /passports/:id — get passport info
   router.get("/:id", requireAuth(), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const id = c.req.param("id");
-    const result = await db.execute({
-      sql: "SELECT * FROM passports WHERE id = ?",
-      args: [id],
-    });
-    const row = result.rows[0] as unknown as PassportRow | undefined;
+
+    const rows = await db<PassportRow[]>`
+      SELECT * FROM passports WHERE id = ${id}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -151,9 +154,9 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
       description: row.description,
       trust_score: row.trust_score,
       status: row.status,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      metadata: row.metadata,
+      created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
     });
   });
 
@@ -172,11 +175,10 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
     }
 
     // Look up passport to get public key and owner
-    const result = await db.execute({
-      sql: "SELECT id, public_key, owner_email, status FROM passports WHERE id = ?",
-      args: [id],
-    });
-    const row = result.rows[0] as unknown as Pick<PassportRow, "id" | "public_key" | "owner_email" | "status"> | undefined;
+    const rows = await db<Pick<PassportRow, "id" | "public_key" | "owner_email" | "status">[]>`
+      SELECT id, public_key, owner_email, status FROM passports WHERE id = ${id}
+    `;
+    const row = rows[0];
 
     if (!row) {
       return c.json(
@@ -215,11 +217,9 @@ export function createPassportsRouter(db: Client): Hono<{ Variables: AuthVariabl
       );
     }
 
-    const now = new Date().toISOString();
-    await db.execute({
-      sql: "UPDATE passports SET status = 'revoked', updated_at = ? WHERE id = ?",
-      args: [now, id],
-    });
+    await db`
+      UPDATE passports SET status = 'revoked', updated_at = NOW() WHERE id = ${id}
+    `;
 
     return c.json({ revoked: true });
   });
