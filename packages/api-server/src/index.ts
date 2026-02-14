@@ -13,7 +13,7 @@ import { initDatabase } from "./db/schema.js";
 import { createAuthRouter } from "./routes/auth.js";
 import { createPassportsRouter } from "./routes/passports.js";
 import { createVerifyRouter } from "./routes/verify.js";
-import { createAuditRouter } from "./routes/audit.js";
+import { createAuditRouter, createAuditListRouter } from "./routes/audit.js";
 import { createTrustRouter } from "./routes/trust.js";
 import { createWebhookRouter } from "./routes/webhooks.js";
 import { createTelegramRouter } from "./routes/telegram.js";
@@ -72,6 +72,7 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   const passportsRouter = createPassportsRouter(db);
   const verifyRouter = createVerifyRouter(db);
   const auditRouter = createAuditRouter(db);
+  const auditListRouter = createAuditListRouter(db);
   const trustRouter = createTrustRouter(db);
   const webhookRouter = createWebhookRouter(db);
   const telegramRouter = createTelegramRouter();
@@ -81,9 +82,9 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   app.route("/auth", authRouter);
   app.route("/passports", passportsRouter);
   app.route("/verify", verifyRouter);
-  // Audit routes are nested under /passports/:id/audit
-  // Mount them at root since they already include /passports/:id/audit paths
-  app.route("/", auditRouter);
+  // Audit routes: per-passport under /passports, global list under /audit
+  app.route("/passports", auditRouter);
+  app.route("/audit", auditListRouter);
   // Trust routes are nested under /passports/:id/trust and /passports/:id/report-abuse
   app.route("/passports", trustRouter);
   // Webhook routes for external services (email worker, etc.)

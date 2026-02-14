@@ -1,8 +1,9 @@
 /**
  * Audit log routes.
  *
- * POST /passports/:id/audit — append an audit entry
- * GET  /passports/:id/audit — list audit entries with pagination
+ * GET  /audit                 — list all audit entries for owner
+ * POST /passports/:id/audit   — append an audit entry
+ * GET  /passports/:id/audit   — list audit entries with pagination
  */
 
 import crypto from "node:crypto";
@@ -39,30 +40,32 @@ interface AuditRow {
   created_at: Date;
 }
 
+function mapAuditRow(row: AuditRow) {
+  return {
+    id: row.id,
+    passport_id: row.passport_id,
+    action: row.action,
+    service: row.service,
+    method: row.method,
+    result: row.result,
+    duration_ms: row.duration_ms,
+    details: row.details,
+    created_at: row.created_at.toISOString(),
+  };
+}
+
 /**
- * Create the audit router bound to the given database instance.
+ * Create the global audit router (mounted at /audit).
  */
-export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
+export function createAuditListRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   const router = new Hono<{ Variables: AuthVariables }>();
 
-  /**
-   * Check that the passport exists and belongs to the owner.
-   * Returns the owner_email if found, null otherwise.
-   */
-  async function getPassportOwner(passportId: string): Promise<string | null> {
-    const rows = await db<{ owner_email: string }[]>`
-      SELECT owner_email FROM passports WHERE id = ${passportId}
-    `;
-    return rows[0]?.owner_email ?? null;
-  }
-
-  // GET /audit — list all audit entries for owner's passports with pagination
-  router.get("/audit", requireAuth(), async (c) => {
+  // GET / — list all audit entries for owner's passports with pagination
+  router.get("/", requireAuth(), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
 
-    // Filter audit entries by owner's passports
     const rows = await db<AuditRow[]>`
       SELECT a.* FROM audit_log a
       JOIN passports p ON a.passport_id = p.id
@@ -78,28 +81,32 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     `;
     const total = Number(totalRows[0].count);
 
-    const entries = rows.map((row) => ({
-      id: row.id,
-      passport_id: row.passport_id,
-      action: row.action,
-      service: row.service,
-      method: row.method,
-      result: row.result,
-      duration_ms: row.duration_ms,
-      details: row.details,
-      created_at: row.created_at.toISOString(),
-    }));
-
     return c.json({
-      entries,
+      entries: rows.map(mapAuditRow),
       total,
       limit,
       offset,
     });
   });
 
-  // POST /passports/:id/audit — append audit entry
-  router.post("/passports/:id/audit", requireAuth(), zValidator(AppendAuditSchema), async (c) => {
+  return router;
+}
+
+/**
+ * Create the passport-scoped audit router (mounted at /passports).
+ */
+export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
+  const router = new Hono<{ Variables: AuthVariables }>();
+
+  async function getPassportOwner(passportId: string): Promise<string | null> {
+    const rows = await db<{ owner_email: string }[]>`
+      SELECT owner_email FROM passports WHERE id = ${passportId}
+    `;
+    return rows[0]?.owner_email ?? null;
+  }
+
+  // POST /:id/audit — append audit entry
+  router.post("/:id/audit", requireAuth(), zValidator(AppendAuditSchema), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
@@ -111,7 +118,6 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
       );
     }
 
-    // Verify owner owns this passport
     if (ownerEmail !== owner.email) {
       return c.json(
         { error: "Access denied", code: "FORBIDDEN" },
@@ -132,8 +138,8 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     return c.json({ id: entryId, created_at: result[0].created_at.toISOString() }, 201);
   });
 
-  // GET /passports/:id/audit — list audit entries with pagination
-  router.get("/passports/:id/audit", requireAuth(), async (c) => {
+  // GET /:id/audit — list audit entries with pagination
+  router.get("/:id/audit", requireAuth(), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
@@ -145,7 +151,6 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
       );
     }
 
-    // Verify owner owns this passport
     if (ownerEmail !== owner.email) {
       return c.json(
         { error: "Access denied", code: "FORBIDDEN" },
@@ -168,20 +173,8 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     `;
     const total = Number(totalRows[0].count);
 
-    const entries = rows.map((row) => ({
-      id: row.id,
-      passport_id: row.passport_id,
-      action: row.action,
-      service: row.service,
-      method: row.method,
-      result: row.result,
-      duration_ms: row.duration_ms,
-      details: row.details,
-      created_at: row.created_at.toISOString(),
-    }));
-
     return c.json({
-      entries,
+      entries: rows.map(mapAuditRow),
       total,
       limit,
       offset,
