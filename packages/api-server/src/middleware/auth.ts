@@ -1,11 +1,15 @@
 /**
- * Authentication middleware for owner JWT tokens.
+ * Authentication middleware for owner JWT tokens and API keys.
  *
  * Uses jose library for JWT signing and verification.
+ * Supports API key authentication when a database instance is provided.
  */
 
 import type { Context, Next } from "hono";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import bcrypt from "bcryptjs";
+import { isApiKeyFormat, extractKeyPrefix } from "../utils/api-key.js";
+import type { Sql } from "../db/schema.js";
 
 /**
  * JWT payload for owner authentication.
@@ -87,18 +91,87 @@ export async function verifyJwt(token: string): Promise<OwnerPayload> {
 }
 
 /**
- * Hono middleware that requires a valid JWT token in the Authorization header.
+ * API key row returned from the database.
+ */
+interface ApiKeyRow {
+  id: string;
+  owner_id: string;
+  key_hash: string;
+  revoked_at: Date | null;
+}
+
+/**
+ * Owner row for resolving email from owner_id.
+ */
+interface OwnerRow {
+  id: string;
+  email: string;
+}
+
+/**
+ * Attempt to authenticate using an API key.
+ *
+ * Looks up the key by its prefix, verifies via bcrypt, checks revocation,
+ * resolves the owner's email, and updates last_used timestamp.
+ *
+ * @returns OwnerPayload if valid, null otherwise
+ */
+async function authenticateApiKey(
+  db: Sql,
+  token: string,
+): Promise<OwnerPayload | null> {
+  const prefix = extractKeyPrefix(token);
+
+  // Look up all non-revoked keys matching this prefix
+  const keyRows = await db<ApiKeyRow[]>`
+    SELECT id, owner_id, key_hash, revoked_at
+    FROM api_keys
+    WHERE key_prefix = ${prefix} AND revoked_at IS NULL
+  `;
+
+  for (const row of keyRows) {
+    const valid = await bcrypt.compare(token, row.key_hash);
+    if (!valid) continue;
+
+    // Resolve owner email
+    const ownerRows = await db<OwnerRow[]>`
+      SELECT id, email FROM owners WHERE id = ${row.owner_id}
+    `;
+    const owner = ownerRows[0];
+    if (!owner) continue;
+
+    // Update last_used timestamp (fire-and-forget)
+    db`UPDATE api_keys SET last_used = NOW() WHERE id = ${row.id}`.catch(() => {});
+
+    return {
+      owner_id: owner.id,
+      email: owner.email,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Hono middleware that requires authentication.
+ *
+ * When called without arguments (requireAuth()), only JWT tokens are accepted.
+ * When called with a database instance (requireAuth(db)), API keys are also accepted.
+ *
+ * API key authentication checks the Bearer token for the `ak_live_` prefix before
+ * trying JWT verification.
  *
  * On success, sets the owner payload in context via `c.set("owner", payload)`.
  * On failure, returns 401.
  *
  * Usage:
- *   router.get("/protected", requireAuth(), async (c) => {
- *     const owner = c.get("owner") as OwnerPayload;
- *     // ...
- *   });
+ *   // JWT-only (auth routes, api-keys management)
+ *   router.get("/protected", requireAuth(), handler);
+ *
+ *   // JWT + API key (passports, audit, trust)
+ *   router.get("/passports", requireAuth(db), handler);
  */
-export function requireAuth() {
+export function requireAuth(db?: Sql) {
   return async (c: Context, next: Next) => {
     const header = c.req.header("Authorization");
 
@@ -111,11 +184,26 @@ export function requireAuth() {
 
     const token = header.slice(7);
 
+    // If db is provided and token looks like an API key, try API key auth first
+    if (db && isApiKeyFormat(token)) {
+      const payload = await authenticateApiKey(db, token);
+      if (payload) {
+        c.set("owner", payload);
+        await next();
+        return;
+      }
+      return c.json(
+        { error: "Invalid or revoked API key", code: "AUTH_INVALID" },
+        401,
+      );
+    }
+
+    // Fall back to JWT verification
     try {
       const payload = await verifyJwt(token);
       c.set("owner", payload);
       await next();
-    } catch (err) {
+    } catch {
       return c.json(
         { error: "Invalid or expired token", code: "AUTH_INVALID" },
         401,

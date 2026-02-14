@@ -112,5 +112,22 @@ export async function initDatabase(connectionString?: string): Promise<Sql> {
       ON sms_notifications(phone_number, received_at DESC)
   `;
 
+  // Create api_keys table
+  await sql`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id          TEXT PRIMARY KEY,
+      owner_id    TEXT NOT NULL,
+      name        TEXT NOT NULL DEFAULT '',
+      key_prefix  TEXT NOT NULL,
+      key_hash    TEXT NOT NULL,
+      last_used   TIMESTAMPTZ,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      revoked_at  TIMESTAMPTZ
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_owner_id ON api_keys(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_key_prefix ON api_keys(key_prefix)`;
+
   return sql;
 }

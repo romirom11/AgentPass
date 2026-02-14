@@ -83,7 +83,7 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   }
 
   // GET /passports/:id/trust — return current trust details
-  router.get("/:id/trust", requireAuth(), async (c) => {
+  router.get("/:id/trust", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
@@ -123,7 +123,7 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   });
 
   // POST /passports/:id/report-abuse — increment abuse count and recalculate
-  router.post("/:id/report-abuse", requireAuth(), zValidator(ReportAbuseSchema), async (c) => {
+  router.post("/:id/report-abuse", requireAuth(db), zValidator(ReportAbuseSchema), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 

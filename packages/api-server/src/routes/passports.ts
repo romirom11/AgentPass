@@ -17,6 +17,13 @@ import { requireAuth, type OwnerPayload, type AuthVariables } from "../middlewar
 // --- Zod schemas for request validation ---
 
 const RegisterPassportSchema = z.object({
+  passport_id: z
+    .string()
+    .regex(
+      /^ap_[a-z0-9]{12}$/,
+      "Invalid passport ID format (expected ap_xxxxxxxxxxxx)",
+    )
+    .optional(),
   public_key: z.string().min(1, "Public key is required"),
   name: z
     .string()
@@ -57,7 +64,7 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
   const router = new Hono<{ Variables: AuthVariables }>();
 
   // GET /passports — list all passports (filtered by owner)
-  router.get("/", requireAuth(), async (c) => {
+  router.get("/", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
@@ -96,10 +103,25 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
   });
 
   // POST /passports — register a new passport
-  router.post("/", requireAuth(), rateLimiters.createPassport, zValidator(RegisterPassportSchema), async (c) => {
+  router.post("/", requireAuth(db), rateLimiters.createPassport, zValidator(RegisterPassportSchema), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const body = getValidatedBody<RegisterPassportBody>(c);
-    const passportId = generatePassportId();
+
+    // Use client-provided passport_id or generate server-side
+    const passportId = body.passport_id ?? generatePassportId();
+
+    // If client provided an ID, check uniqueness
+    if (body.passport_id) {
+      const existing = await db<{ id: string }[]>`
+        SELECT id FROM passports WHERE id = ${passportId}
+      `;
+      if (existing.length > 0) {
+        return c.json(
+          { error: "Passport ID already exists", code: "CONFLICT" },
+          409,
+        );
+      }
+    }
 
     const result = await db<{ created_at: Date }[]>`
       INSERT INTO passports (id, public_key, owner_email, name, description, trust_score, status)
@@ -122,7 +144,7 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
   });
 
   // GET /passports/:id — get passport info
-  router.get("/:id", requireAuth(), async (c) => {
+  router.get("/:id", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const id = c.req.param("id");
 
@@ -161,7 +183,7 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
   });
 
   // DELETE /passports/:id — revoke a passport (requires signature and owner auth)
-  router.delete("/:id", requireAuth(), async (c) => {
+  router.delete("/:id", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const id = c.req.param("id");
     const signature = c.req.header("X-AgentPass-Signature");

@@ -38,6 +38,23 @@ export interface AuditLogResponse {
   offset: number;
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  last_used: string | null;
+  created_at: string;
+  revoked_at: string | null;
+}
+
+export interface CreateApiKeyResponse {
+  id: string;
+  name: string;
+  key: string;  // Full key, shown only once
+  key_prefix: string;
+  created_at: string;
+}
+
 export interface RegisterPassportRequest {
   public_key: string;
   owner_email: string;
@@ -47,6 +64,7 @@ export interface RegisterPassportRequest {
 
 export interface RegisterPassportResponse {
   passport_id: string;
+  email: string;
   created_at: string;
 }
 
@@ -208,6 +226,33 @@ class ApiClient {
    */
   async getMe(): Promise<{ owner_id: string; email: string; name: string }> {
     return this.fetch<{ owner_id: string; email: string; name: string }>("/auth/me");
+  }
+
+  /**
+   * Create a new API key.
+   */
+  async createApiKey(name: string): Promise<CreateApiKeyResponse> {
+    return this.fetch<CreateApiKeyResponse>("/api-keys", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  /**
+   * List all API keys for the owner.
+   */
+  async listApiKeys(): Promise<ApiKey[]> {
+    const response = await this.fetch<{ api_keys: ApiKey[] }>("/api-keys");
+    return response.api_keys;
+  }
+
+  /**
+   * Revoke an API key.
+   */
+  async revokeApiKey(id: string): Promise<{ revoked: boolean }> {
+    return this.fetch<{ revoked: boolean }>(`/api-keys/${id}`, {
+      method: "DELETE",
+    });
   }
 }
 

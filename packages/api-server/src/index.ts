@@ -15,6 +15,7 @@ import { createPassportsRouter } from "./routes/passports.js";
 import { createVerifyRouter } from "./routes/verify.js";
 import { createAuditRouter, createAuditListRouter } from "./routes/audit.js";
 import { createTrustRouter } from "./routes/trust.js";
+import { createApiKeysRouter } from "./routes/api-keys.js";
 import { createWebhookRouter } from "./routes/webhooks.js";
 import { createTelegramRouter } from "./routes/telegram.js";
 import { createHealthRouter } from "./middleware/health.js";
@@ -74,6 +75,7 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   const auditRouter = createAuditRouter(db);
   const auditListRouter = createAuditListRouter(db);
   const trustRouter = createTrustRouter(db);
+  const apiKeysRouter = createApiKeysRouter(db);
   const webhookRouter = createWebhookRouter(db);
   const telegramRouter = createTelegramRouter();
   const healthRouter = createHealthRouter(db);
@@ -87,6 +89,8 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   app.route("/audit", auditListRouter);
   // Trust routes are nested under /passports/:id/trust and /passports/:id/report-abuse
   app.route("/passports", trustRouter);
+  // API key management (JWT-only auth)
+  app.route("/api-keys", apiKeysRouter);
   // Webhook routes for external services (email worker, etc.)
   app.route("/webhook", webhookRouter);
   // Telegram routes for bot webhooks and account linking

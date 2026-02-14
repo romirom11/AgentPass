@@ -14,6 +14,7 @@ import {
   type StoredIdentity,
   type IdentityListEntry,
 } from "@agentpass/core";
+import type { ApiClient } from "./api-client.js";
 
 export interface IdentitySummary {
   passport_id: string;
@@ -22,16 +23,26 @@ export interface IdentitySummary {
   created_at: string;
 }
 
+export interface CreateIdentityResult {
+  passport: AgentPassport;
+  publicKey: string;
+  apiRegistered: boolean;
+  email?: string;
+}
+
 export class IdentityService {
   private vault: CredentialVault | null = null;
+  private apiClient: ApiClient | undefined;
 
   /**
-   * Initialize the service with a vault instance.
+   * Initialize the service with a vault instance and optional API client.
    *
-   * Must be called before any other method.
+   * Must be called before any other method. If apiClient is provided,
+   * identities will be registered on the API server during creation.
    */
-  async init(vault: CredentialVault): Promise<void> {
+  async init(vault: CredentialVault, apiClient?: ApiClient): Promise<void> {
     this.vault = vault;
+    this.apiClient = apiClient;
   }
 
   /**
@@ -39,12 +50,16 @@ export class IdentityService {
    *
    * Generates an Ed25519 key pair, builds a passport, and stores everything
    * in the encrypted vault. The private key never leaves the local store.
+   *
+   * If an API client is configured, the passport is also registered on the
+   * AgentPass API server. Registration failure is non-fatal (graceful
+   * degradation) -- the passport is still created locally.
    */
   async createIdentity(input: {
     name: string;
     description?: string;
     owner_email: string;
-  }): Promise<{ passport: AgentPassport; publicKey: string }> {
+  }): Promise<CreateIdentityResult> {
     this.ensureInitialized();
 
     const keyPair: KeyPair = generateKeyPair();
@@ -65,7 +80,30 @@ export class IdentityService {
 
     await this.vault!.storeIdentity(storedIdentity);
 
-    return { passport, publicKey: keyPair.publicKey };
+    // Register on API server if client is available
+    if (this.apiClient) {
+      try {
+        const apiResult = await this.apiClient.registerPassport({
+          passport_id: passport.passport_id,
+          public_key: keyPair.publicKey,
+          name: input.name,
+          description: input.description ?? "",
+        });
+        return {
+          passport,
+          publicKey: keyPair.publicKey,
+          apiRegistered: true,
+          email: apiResult.email,
+        };
+      } catch (error) {
+        console.warn(
+          `[AgentPass] Failed to register passport on API server: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return { passport, publicKey: keyPair.publicKey, apiRegistered: false };
+      }
+    }
+
+    return { passport, publicKey: keyPair.publicKey, apiRegistered: false };
   }
 
   /**

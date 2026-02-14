@@ -20,6 +20,7 @@ import { TelegramBotService } from "./services/telegram-bot.js";
 import { WebhookService } from "./services/webhook-service.js";
 import { ApprovalService } from "./services/approval-service.js";
 import { registerAllTools } from "./tools/index.js";
+import { ApiClient } from "./services/api-client.js";
 import { CredentialVault } from "@agentpass/core";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -85,9 +86,26 @@ async function createServer(): Promise<McpServer> {
   const vault = new CredentialVault(vaultPath, masterKey);
   await vault.init();
 
+  // Initialize API client if API key is configured
+  const apiBaseUrl =
+    process.env.AGENTPASS_API_URL || "http://localhost:3846";
+  const apiKey = process.env.AGENTPASS_API_KEY;
+
+  let apiClient: ApiClient | undefined;
+  if (apiKey) {
+    apiClient = new ApiClient({ apiUrl: apiBaseUrl, apiKey });
+    console.log(
+      `[AgentPass MCP] API client configured (${apiBaseUrl})`,
+    );
+  } else {
+    console.log(
+      "[AgentPass MCP] WARNING: AGENTPASS_API_KEY not set — API registration is disabled. Passports will be created locally only.",
+    );
+  }
+
   // Initialize services
   const identityService = new IdentityService();
-  await identityService.init(vault);
+  await identityService.init(vault, apiClient);
 
   const credentialService = new CredentialService();
   credentialService.setVault(vault);

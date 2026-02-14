@@ -61,7 +61,7 @@ export function createAuditListRouter(db: Sql): Hono<{ Variables: AuthVariables 
   const router = new Hono<{ Variables: AuthVariables }>();
 
   // GET / — list all audit entries for owner's passports with pagination
-  router.get("/", requireAuth(), async (c) => {
+  router.get("/", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "50", 10) || 50, 1), 200);
     const offset = Math.max(parseInt(c.req.query("offset") || "0", 10) || 0, 0);
@@ -106,7 +106,7 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   }
 
   // POST /:id/audit — append audit entry
-  router.post("/:id/audit", requireAuth(), zValidator(AppendAuditSchema), async (c) => {
+  router.post("/:id/audit", requireAuth(db), zValidator(AppendAuditSchema), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
@@ -139,7 +139,7 @@ export function createAuditRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   });
 
   // GET /:id/audit — list audit entries with pagination
-  router.get("/:id/audit", requireAuth(), async (c) => {
+  router.get("/:id/audit", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 

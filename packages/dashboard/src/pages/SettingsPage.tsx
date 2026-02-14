@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { apiClient, type ApiKey, type CreateApiKeyResponse } from "../api/client.js";
+import { useAuth } from "../context/AuthContext.js";
 
 interface NotificationPreferences {
   agent_registered: boolean;
@@ -53,6 +55,7 @@ function saveSettings(settings: Settings) {
 }
 
 export default function SettingsPage() {
+  const { token } = useAuth();
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [webhookSaved, setWebhookSaved] = useState(false);
   const [telegramLinked, setTelegramLinked] = useState(
@@ -61,6 +64,40 @@ export default function SettingsPage() {
   const [apiStatus, setApiStatus] = useState<
     "checking" | "online" | "offline"
   >("checking");
+
+  // API Key state
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState<CreateApiKeyResponse | null>(null);
+  const [apiKeysLoading, setApiKeysLoading] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [keyCopied, setKeyCopied] = useState(false);
+  const [configCopied, setConfigCopied] = useState(false);
+  const [envCopied, setEnvCopied] = useState(false);
+
+  // Set token on apiClient whenever it changes
+  useEffect(() => {
+    apiClient.setToken(token);
+  }, [token]);
+
+  const loadApiKeys = useCallback(async () => {
+    if (!token) return;
+    setApiKeysLoading(true);
+    setApiKeyError(null);
+    try {
+      const keys = await apiClient.listApiKeys();
+      setApiKeys(keys);
+    } catch (err) {
+      setApiKeyError(err instanceof Error ? err.message : "Failed to load API keys");
+    } finally {
+      setApiKeysLoading(false);
+    }
+  }, [token]);
+
+  // Load API keys on mount
+  useEffect(() => {
+    loadApiKeys();
+  }, [loadApiKeys]);
 
   // Check API connection status on mount
   useEffect(() => {
@@ -75,6 +112,52 @@ export default function SettingsPage() {
 
     checkApiStatus();
   }, []);
+
+  const handleCreateApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyName.trim()) return;
+
+    setApiKeysLoading(true);
+    setApiKeyError(null);
+    try {
+      const result = await apiClient.createApiKey(newKeyName.trim());
+      setCreatedKey(result);
+      setNewKeyName("");
+      await loadApiKeys();
+    } catch (err) {
+      setApiKeyError(err instanceof Error ? err.message : "Failed to create API key");
+    } finally {
+      setApiKeysLoading(false);
+    }
+  };
+
+  const handleRevokeApiKey = async (id: string) => {
+    setApiKeyError(null);
+    try {
+      await apiClient.revokeApiKey(id);
+      await loadApiKeys();
+    } catch (err) {
+      setApiKeyError(err instanceof Error ? err.message : "Failed to revoke API key");
+    }
+  };
+
+  const handleCopyText = async (text: string, setter: (v: boolean) => void) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setter(true);
+      setTimeout(() => setter(false), 2000);
+    } catch {
+      setApiKeyError("Failed to copy to clipboard");
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   const handleSaveWebhook = () => {
     saveSettings(settings);
@@ -209,6 +292,210 @@ export default function SettingsPage() {
               </span>
             </div>
           </div>
+        </section>
+
+        {/* API Keys */}
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900">API Keys</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Authenticate MCP servers and external tools with the AgentPass API
+          </p>
+
+          {/* Create API Key Form */}
+          <form onSubmit={handleCreateApiKey} className="mt-6 flex gap-3">
+            <input
+              type="text"
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder="Key name, e.g. mcp-server-prod"
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={apiKeysLoading || !newKeyName.trim()}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {apiKeysLoading ? "Creating..." : "Create Key"}
+            </button>
+          </form>
+
+          {/* Error Display */}
+          {apiKeyError && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm text-red-700">{apiKeyError}</p>
+            </div>
+          )}
+
+          {/* Newly Created Key (one-time display) */}
+          {createdKey && (
+            <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg
+                  className="h-5 w-5 text-amber-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
+                <span className="font-semibold text-amber-900 text-sm">
+                  Save Your API Key
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 mb-3">
+                This key will NOT be shown again. Copy it now and store it securely.
+              </p>
+
+              {/* Full Key Display */}
+              <div className="relative mb-4">
+                <pre className="rounded-lg bg-gray-900 p-3 text-xs text-gray-300 font-mono overflow-x-auto break-all">
+{createdKey.key}
+                </pre>
+                <button
+                  onClick={() => handleCopyText(createdKey.key, setKeyCopied)}
+                  className="absolute top-2 right-2 rounded px-2 py-1 text-xs font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  {keyCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              {/* Config Snippet */}
+              <p className="text-xs font-medium text-amber-900 mb-1">
+                ~/.agentpass/config.yaml
+              </p>
+              <div className="relative mb-4">
+                <pre className="rounded-lg bg-gray-900 p-3 text-xs text-gray-300 font-mono overflow-x-auto">
+{`api_url: ${API_URL}\napi_key: ${createdKey.key}`}
+                </pre>
+                <button
+                  onClick={() =>
+                    handleCopyText(
+                      `api_url: ${API_URL}\napi_key: ${createdKey.key}`,
+                      setConfigCopied,
+                    )
+                  }
+                  className="absolute top-2 right-2 rounded px-2 py-1 text-xs font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  {configCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              {/* Env Var Snippet */}
+              <p className="text-xs font-medium text-amber-900 mb-1">
+                Environment variables
+              </p>
+              <div className="relative">
+                <pre className="rounded-lg bg-gray-900 p-3 text-xs text-gray-300 font-mono overflow-x-auto">
+{`AGENTPASS_API_URL=${API_URL}\nAGENTPASS_API_KEY=${createdKey.key}`}
+                </pre>
+                <button
+                  onClick={() =>
+                    handleCopyText(
+                      `AGENTPASS_API_URL=${API_URL}\nAGENTPASS_API_KEY=${createdKey.key}`,
+                      setEnvCopied,
+                    )
+                  }
+                  className="absolute top-2 right-2 rounded px-2 py-1 text-xs font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  {envCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              {/* Dismiss Button */}
+              <button
+                onClick={() => setCreatedKey(null)}
+                className="mt-4 w-full rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                I've saved my key
+              </button>
+            </div>
+          )}
+
+          {/* Existing Keys List */}
+          {apiKeys.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Existing Keys
+              </h3>
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Name
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Prefix
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Last Used
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Created
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Status
+                      </th>
+                      <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {apiKeys.map((key) => (
+                      <tr key={key.id}>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                          {key.name}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-gray-500">
+                          {key.key_prefix}...
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                          {key.last_used ? formatDate(key.last_used) : "Never"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                          {formatDate(key.created_at)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          {key.revoked_at ? (
+                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                              Revoked
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          {!key.revoked_at && (
+                            <button
+                              onClick={() => handleRevokeApiKey(key.id)}
+                              className="text-sm font-medium text-red-600 transition-colors hover:text-red-800"
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {apiKeysLoading && apiKeys.length === 0 && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500">Loading API keys...</p>
+            </div>
+          )}
         </section>
 
         {/* Webhook Configuration */}
