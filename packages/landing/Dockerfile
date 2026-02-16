@@ -16,7 +16,10 @@ COPY packages/landing ./packages/landing
 # Install dependencies
 RUN pnpm install --frozen-lockfile --filter @agentpass/landing...
 
-# Build
+# Build with production API URL
+ARG VITE_API_URL=https://api.agentpass.space
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN pnpm --filter @agentpass/landing build
 
 # Production stage

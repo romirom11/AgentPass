@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agentpass": {
+      "command": "node",
+      "args": ["packages/mcp-server/dist/index.js"],
+      "env": {
+        "AGENTPASS_API_URL": "https://api.agentpass.space"
+      }
+    }
+  }
+}
