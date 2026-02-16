@@ -138,7 +138,7 @@ export async function navigate(
 ): Promise<void> {
   await withRetry(
     async () => {
-      await page.goto(url, { waitUntil: 'networkidle', timeout });
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
     },
     MAX_RETRIES,
     page,
@@ -185,7 +185,7 @@ export async function clickButton(page: Page, selector: string): Promise<void> {
     async () => {
       await Promise.all([
         page
-          .waitForNavigation({ waitUntil: 'networkidle', timeout: DEFAULT_NAVIGATION_TIMEOUT_MS })
+          .waitForNavigation({ waitUntil: 'domcontentloaded', timeout: DEFAULT_NAVIGATION_TIMEOUT_MS })
           .catch((err) => {
             // Navigation doesn't always happen (e.g. SPA), but log non-timeout errors
             if (err instanceof Error && !err.message.includes('timeout')) {

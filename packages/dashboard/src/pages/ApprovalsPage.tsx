@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiClient, type Approval } from "../api/client.js";
+import { useNavigate } from "react-router-dom";
+import { apiClient, type Approval, type Escalation } from "../api/client.js";
 
 type ApprovalStatus = "pending" | "approved" | "denied";
 
@@ -35,7 +36,9 @@ function formatTimestamp(isoDate: string): string {
 }
 
 export default function ApprovalsPage() {
+  const navigate = useNavigate();
   const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [escalations, setEscalations] = useState<Escalation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [respondingIds, setRespondingIds] = useState<Set<string>>(new Set());
@@ -43,8 +46,12 @@ export default function ApprovalsPage() {
   const fetchApprovals = useCallback(async () => {
     try {
       setError(null);
-      const data = await apiClient.listApprovals();
-      setApprovals(data);
+      const [approvalsData, escalationsData] = await Promise.all([
+        apiClient.listApprovals(),
+        apiClient.listEscalations("pending").catch(() => [] as Escalation[]),
+      ]);
+      setApprovals(approvalsData);
+      setEscalations(escalationsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load approvals");
       console.error("Failed to fetch approvals:", err);
@@ -223,6 +230,63 @@ export default function ApprovalsPage() {
                         {respondingIds.has(approval.id) ? "..." : "Deny"}
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CAPTCHA Escalations */}
+      {!loading && escalations.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            CAPTCHA Escalations
+            <span className="ml-2 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+              {escalations.length}
+            </span>
+          </h2>
+          <div className="space-y-4">
+            {escalations.map((esc) => (
+              <div
+                key={esc.id}
+                className="cursor-pointer rounded-xl border border-orange-200 bg-white p-6 shadow-sm transition-colors hover:border-orange-300"
+                onClick={() => navigate(`/solve/${esc.id}`)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-sm font-medium text-orange-700">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 font-mono">
+                          {esc.passport_id}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {esc.service || "Unknown service"} &middot;{" "}
+                          <span className="rounded-md bg-orange-50 px-1.5 py-0.5 font-mono text-xs text-orange-700">
+                            {esc.captcha_type}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">
+                      {formatTimestamp(esc.created_at)}
+                    </p>
+                  </div>
+
+                  <div className="ml-6 flex flex-col items-end gap-3">
+                    <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+                      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" />
+                      Pending
+                    </span>
+                    <span className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                      Solve &rarr;
+                    </span>
                   </div>
                 </div>
               </div>

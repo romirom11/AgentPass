@@ -84,8 +84,8 @@ export class CaptchaService {
           screenshot: screenshotBase64,
         });
         escalationId = apiResult.escalation_id;
-      } catch {
-        // API unavailable — fall back to local ID generation
+      } catch (error) {
+        console.warn("[CaptchaService] API escalation failed, falling back to local:", error);
         escalationId = `esc_${crypto.randomBytes(12).toString("hex")}`;
       }
     } else {

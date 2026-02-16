@@ -1,4 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import path from 'node:path';
+import fs from 'node:fs';
 
 export interface BrowserLaunchOptions {
   /** SOCKS5 or HTTP proxy URL (e.g. "socks5://127.0.0.1:1080") */
@@ -12,6 +14,39 @@ const DEFAULT_VIEWPORT = { width: 1280, height: 720 } as const;
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+/**
+ * Find the chromium-headless-shell binary in the Playwright cache.
+ *
+ * Playwright installs a dedicated headless shell binary that runs without
+ * any GUI process — no dock icon, no window, just a headless renderer.
+ * The default `chromium.executablePath()` points to the full Chrome for Testing
+ * .app bundle which registers as a GUI app on macOS even in headless mode.
+ */
+function findHeadlessShellExecutable(): string | undefined {
+  const cacheDir =
+    process.env.PLAYWRIGHT_BROWSERS_PATH ||
+    (process.platform === 'darwin'
+      ? path.join(process.env.HOME || '', 'Library', 'Caches', 'ms-playwright')
+      : path.join(process.env.HOME || '', '.cache', 'ms-playwright'));
+
+  if (!fs.existsSync(cacheDir)) return undefined;
+
+  const entries = fs.readdirSync(cacheDir).filter(e => e.startsWith('chromium_headless_shell-'));
+  if (entries.length === 0) return undefined;
+
+  // Pick the latest version (highest revision number)
+  entries.sort();
+  const shellDir = entries[entries.length - 1];
+
+  // Find the actual binary inside
+  const shellBase = path.join(cacheDir, shellDir);
+  const platformDirs = fs.readdirSync(shellBase).filter(e => e.startsWith('chrome-headless-shell-'));
+  if (platformDirs.length === 0) return undefined;
+
+  const binaryPath = path.join(shellBase, platformDirs[0], 'chrome-headless-shell');
+  return fs.existsSync(binaryPath) ? binaryPath : undefined;
+}
 
 /**
  * Manages the Playwright browser lifecycle for AgentPass fallback authentication.
@@ -32,21 +67,24 @@ export class BrowserManager {
   /**
    * Launch a Chromium browser instance.
    *
+   * When headless is true, uses the chromium-headless-shell binary if available.
+   * This avoids the macOS issue where the full Chrome .app shows a dock icon
+   * and window even in headless mode.
+   *
    * @param options.proxy  — Optional proxy server URL.
    * @param options.headless — Run headless (default `true`).
    */
   async launch(options?: BrowserLaunchOptions): Promise<void> {
     const headless = options?.headless ?? true;
 
-    const launchOptions: Parameters<typeof chromium.launch>[0] = {
+    // Use the dedicated headless shell to avoid GUI on macOS
+    const executablePath = headless ? findHeadlessShellExecutable() : undefined;
+
+    this.browser = await chromium.launch({
       headless,
-    };
-
-    if (options?.proxy) {
-      launchOptions.proxy = { server: options.proxy };
-    }
-
-    this.browser = await chromium.launch(launchOptions);
+      ...(executablePath ? { executablePath } : {}),
+      ...(options?.proxy ? { proxy: { server: options.proxy } } : {}),
+    });
 
     this.context = await this.browser.newContext({
       viewport: DEFAULT_VIEWPORT,

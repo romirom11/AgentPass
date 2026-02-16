@@ -21,7 +21,6 @@
     "@agentpass/browser-service": "workspace:*",
     "@agentpass/core": "workspace:*",
     "@agentpass/email-service": "workspace:*",
-    "@anthropic-ai/sdk": "^0.39.0",
     "@modelcontextprotocol/sdk": "^1.6.1",
     "grammy": "^1.40.0",
     "twilio": "^5.12.1",

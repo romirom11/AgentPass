@@ -23,10 +23,9 @@ import { SessionService } from "./services/session-service.js";
 import { CaptchaService } from "./services/captcha-service.js";
 import { BrowserSessionService } from "./services/browser-session-service.js";
 import { FallbackAuthService } from "./services/fallback-auth-service.js";
-import type { BrowserOperations } from "./services/fallback-auth-service.js";
 import { PlaywrightBrowserAdapter } from "./adapters/playwright-browser-adapter.js";
-import { AgenticBrowserAdapter } from "./adapters/agentic-browser-adapter.js";
 import { registerAllTools } from "./tools/index.js";
+import { BrowserSessionManager } from "./tools/browser.js";
 import { ApiClient } from "./services/api-client.js";
 import { CredentialVault } from "@agentpass/core";
 import crypto from "node:crypto";
@@ -134,35 +133,22 @@ async function createServer(): Promise<McpServer> {
   const emailService = new EmailServiceAdapter();
   const sessionService = new SessionService();
 
-  // Initialize browser adapter — select agentic or classic mode
-  const browserMode = process.env.AGENTPASS_BROWSER_MODE ?? "classic";
+  // Initialize browser adapter for fallback auth (CSS-selector based)
   const browserHeadless = process.env.AGENTPASS_BROWSER_HEADLESS !== "false";
   const browserProxy = process.env.AGENTPASS_PROXY_URL;
 
-  let browserAdapter: BrowserOperations & { close(): Promise<void> };
+  const browserAdapter = new PlaywrightBrowserAdapter({
+    headless: browserHeadless,
+    proxy: browserProxy,
+  });
 
-  if (browserMode === "agentic" && process.env.ANTHROPIC_API_KEY) {
-    browserAdapter = new AgenticBrowserAdapter({
-      headless: browserHeadless,
-      proxy: browserProxy,
-      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    });
-    console.log(
-      "[AgentPass MCP] Browser mode: agentic (Claude computer_use)",
-    );
-  } else {
-    browserAdapter = new PlaywrightBrowserAdapter({
-      headless: browserHeadless,
-      proxy: browserProxy,
-    });
-    if (browserMode === "agentic" && !process.env.ANTHROPIC_API_KEY) {
-      console.log(
-        "[AgentPass MCP] WARNING: AGENTPASS_BROWSER_MODE=agentic but ANTHROPIC_API_KEY not set — falling back to classic browser mode",
-      );
-    } else {
-      console.log("[AgentPass MCP] Browser mode: classic (CSS selectors)");
-    }
-  }
+  // Initialize browser session manager for LLM-driven browser action tools
+  const browserSessionManager = new BrowserSessionManager({
+    headless: browserHeadless,
+    proxy: browserProxy,
+  });
+
+  console.log("[AgentPass MCP] Browser tools: LLM-driven action loop");
 
   const fallbackAuthService = new FallbackAuthService(
     identityService,
@@ -196,11 +182,13 @@ async function createServer(): Promise<McpServer> {
     sessionService,
     captchaService,
     browserSessionService,
+    browserSessionManager,
   });
 
   // Graceful shutdown handler for Telegram bot, SMS service, and browser
   const originalShutdown = async () => {
     await browserAdapter.close();
+    await browserSessionManager.close();
     if (browserSessionService) {
       await browserSessionService.stopAll();
     }

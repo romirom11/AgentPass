@@ -24,6 +24,8 @@ import { registerSmsTools } from "./sms.js";
 import { registerApprovalTools } from "./approval.js";
 import { registerSessionTools } from "./session.js";
 import { registerCaptchaTools } from "./captcha.js";
+import { registerBrowserTools } from "./browser.js";
+import type { BrowserSessionManager } from "./browser.js";
 
 /**
  * Register all AgentPass MCP tools on the server.
@@ -45,6 +47,7 @@ export function registerAllTools(
     sessionService: SessionService;
     captchaService?: CaptchaService;
     browserSessionService?: BrowserSessionService;
+    browserSessionManager?: BrowserSessionManager;
   },
 ): void {
   registerIdentityTools(server, services.identityService);
@@ -58,5 +61,8 @@ export function registerAllTools(
   registerSessionTools(server, services.sessionService);
   if (services.captchaService) {
     registerCaptchaTools(server, services.captchaService, services.browserSessionService);
+  }
+  if (services.browserSessionManager) {
+    registerBrowserTools(server, services.browserSessionManager, services.captchaService);
   }
 }
