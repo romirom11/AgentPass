@@ -50,6 +50,10 @@ const STEPS: { key: AuthStep; label: string; description: string }[] = [
 
 const POLL_INTERVAL = 2000;
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3846";
+const DEMO_AUTH_BASE = `${API_URL}/demo/api/auth/agent`;
+const SITE_URL = typeof window !== "undefined" ? window.location.origin : "https://agentpass.space";
+
 // --- Component ---
 
 export default function DemoPage() {
@@ -79,7 +83,7 @@ export default function DemoPage() {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch("/auth/agentpass/sessions");
+        const res = await fetch(`${DEMO_AUTH_BASE}/sessions`);
         if (!res.ok) return;
         const data = await res.json();
         const sessions: SessionEntry[] = data.sessions ?? [];
@@ -115,7 +119,7 @@ export default function DemoPage() {
   const reset = async () => {
     stopPolling();
     try {
-      await fetch("/auth/agentpass/sessions", { method: "DELETE" });
+      await fetch(`${DEMO_AUTH_BASE}/sessions`, { method: "DELETE" });
     } catch {
       // Best effort
     }
@@ -221,7 +225,7 @@ export default function DemoPage() {
               <p className="mt-2 text-xs text-gray-600">
                 Enter the passport ID of your agent, then trigger{" "}
                 <code className="rounded bg-gray-800 px-1 py-0.5 text-emerald-400">
-                  authenticate("http://localhost:3848")
+                  authenticate("{SITE_URL}")
                 </code>{" "}
                 from your agent.
               </p>
@@ -289,7 +293,7 @@ export default function DemoPage() {
               <p className="text-xs text-gray-600">
                 Run{" "}
                 <code className="rounded bg-gray-800 px-1.5 py-0.5 text-emerald-400">
-                  authenticate("http://localhost:3848")
+                  authenticate("{SITE_URL}")
                 </code>{" "}
                 from your agent
               </p>
@@ -585,7 +589,7 @@ export default function DemoPage() {
                 <span className="text-purple-400">await</span>{" "}
                 <span className="text-emerald-400">authenticate</span>
                 <span className="text-gray-300">(</span>
-                <span className="text-amber-300">"http://localhost:3848"</span>
+                <span className="text-amber-300">"{SITE_URL}"</span>
                 <span className="text-gray-300">);</span>
                 {"\n\n"}
                 <span className="text-gray-500">

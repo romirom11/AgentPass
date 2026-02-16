@@ -1,5 +1,5 @@
 {
   "agentpass": true,
-  "auth_endpoint": "/auth/agentpass",
+  "auth_endpoint": "https://api.agentpass.space/demo/api/auth/agent",
   "capabilities": ["ed25519-verification"]
 }
