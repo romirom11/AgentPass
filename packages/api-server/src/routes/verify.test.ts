@@ -80,7 +80,8 @@ describe("Verify routes", () => {
       const data = await res.json();
       expect(data.valid).toBe(true);
       expect(data.passport_id).toBe(passport_id);
-      expect(data.trust_score).toBe(1); // incremented on success
+      expect(data.trust_score).toBe(0); // 1 auth / 10 = 0 activity bonus
+      expect(data.trust_level).toBe("unverified");
       expect(data.status).toBe("active");
     });
 
@@ -185,10 +186,10 @@ describe("Verify routes", () => {
       expect(data.code).toBe("VALIDATION_ERROR");
     });
 
-    it("increments trust_score on each successful verification", async () => {
+    it("recalculates trust_score using formula on each successful verification", async () => {
       const { passport_id, keyPair } = await setupPassport();
 
-      // Verify three times
+      // Verify three times — each creates an audit_log entry
       for (let i = 0; i < 3; i++) {
         const challenge = createChallenge();
         const signature = signChallenge(challenge, keyPair.privateKey);
@@ -199,12 +200,47 @@ describe("Verify routes", () => {
         });
       }
 
-      // Check trust_score via GET
+      // Check trust_score via GET — 3 auths / 10 = 0 activity bonus
       const res = await app.request(`/passports/${passport_id}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
-      expect(data.trust_score).toBe(3);
+      expect(data.trust_score).toBe(0);
+      expect(data.trust_level).toBe("unverified");
+    });
+
+    it("writes audit_log entries on verification", async () => {
+      const { passport_id, keyPair } = await setupPassport();
+
+      // Successful verification
+      const challenge = createChallenge();
+      const signature = signChallenge(challenge, keyPair.privateKey);
+      await app.request("/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passport_id, challenge, signature }),
+      });
+
+      // Failed verification
+      await app.request("/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passport_id, challenge, signature: "invalid" }),
+      });
+
+      // Check audit log via GET /passports/:id/audit
+      const res = await app.request(`/passports/${passport_id}/audit`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await res.json();
+
+      const verifyEntries = data.entries.filter((e: any) => e.action === "verify");
+      expect(verifyEntries.length).toBe(2);
+
+      const successEntries = verifyEntries.filter((e: any) => e.result === "success");
+      const failEntries = verifyEntries.filter((e: any) => e.result === "failure");
+      expect(successEntries.length).toBe(1);
+      expect(failEntries.length).toBe(1);
     });
   });
 });

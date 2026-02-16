@@ -5,16 +5,16 @@ interface TrustScoreBarProps {
 
 function getScoreColor(score: number): string {
   if (score >= 80) return "bg-emerald-500";
-  if (score >= 60) return "bg-blue-500";
-  if (score >= 40) return "bg-amber-500";
+  if (score >= 50) return "bg-blue-500";
+  if (score >= 20) return "bg-amber-500";
   return "bg-red-500";
 }
 
 function getScoreLevel(score: number): string {
-  if (score >= 80) return "Excellent";
-  if (score >= 60) return "Good";
-  if (score >= 40) return "Fair";
-  return "Low";
+  if (score >= 80) return "Trusted";
+  if (score >= 50) return "Verified";
+  if (score >= 20) return "Basic";
+  return "Unverified";
 }
 
 export default function TrustScoreBar({

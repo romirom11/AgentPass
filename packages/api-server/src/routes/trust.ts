@@ -1,8 +1,10 @@
 /**
  * Trust score routes.
  *
- * GET  /passports/:id/trust        - Get current trust details
- * POST /passports/:id/report-abuse - Report abuse and recalculate trust score
+ * GET   /passports/:id/trust                - Get current trust details
+ * PATCH /passports/:id/trust/verify-owner   - Set owner_verified flag
+ * PATCH /passports/:id/trust/payment-method - Set payment_method flag
+ * POST  /passports/:id/report-abuse         - Report abuse and recalculate trust score
  */
 
 import { Hono } from "hono";
@@ -82,11 +84,14 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     return Number(rows[0]?.count ?? 0);
   }
 
-  // GET /passports/:id/trust — return current trust details
-  router.get("/:id/trust", requireAuth(db), async (c) => {
-    const owner = c.get("owner") as OwnerPayload;
-    const passportId = c.req.param("id");
-
+  /**
+   * Fetch a passport row and verify ownership. Returns the row or a JSON error response.
+   */
+  async function fetchOwnedPassport(
+    c: any,
+    passportId: string,
+    owner: OwnerPayload,
+  ): Promise<PassportRow | Response> {
     const rows = await db<PassportRow[]>`
       SELECT id, owner_email, trust_score, status, metadata, created_at
       FROM passports WHERE id = ${passportId}
@@ -100,13 +105,46 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
       );
     }
 
-    // Verify owner owns this passport
     if (row.owner_email !== owner.email) {
       return c.json(
         { error: "Access denied", code: "FORBIDDEN" },
         403,
       );
     }
+
+    return row;
+  }
+
+  /**
+   * Recalculate trust score, persist it, and return the new score + level.
+   */
+  async function recalculateAndPersist(
+    passportId: string,
+    metadata: Record<string, unknown>,
+    createdAt: Date,
+  ): Promise<{ score: number; level: string; factors: TrustFactors }> {
+    const successfulAuths = await getSuccessfulAuths(passportId);
+    const factors = buildTrustFactors(metadata, createdAt, successfulAuths);
+    const score = calculateTrustScore(factors);
+
+    const metadataJson = JSON.stringify(metadata);
+    await db`
+      UPDATE passports
+      SET trust_score = ${score}, metadata = ${metadataJson}::jsonb, updated_at = NOW()
+      WHERE id = ${passportId}
+    `;
+
+    return { score, level: getTrustLevel(score), factors };
+  }
+
+  // GET /passports/:id/trust — return current trust details
+  router.get("/:id/trust", requireAuth(db), async (c) => {
+    const owner = c.get("owner") as OwnerPayload;
+    const passportId = c.req.param("id");
+
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
 
     const metadata = parseMetadata(row.metadata);
     const successfulAuths = await getSuccessfulAuths(passportId);
@@ -122,31 +160,66 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     });
   });
 
+  // PATCH /passports/:id/trust/verify-owner — set owner_verified flag
+  router.patch("/:id/trust/verify-owner", requireAuth(db), async (c) => {
+    const owner = c.get("owner") as OwnerPayload;
+    const passportId = c.req.param("id");
+
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
+
+    const metadata = parseMetadata(row.metadata);
+    metadata.owner_verified = true;
+
+    const { score, level, factors } = await recalculateAndPersist(
+      passportId,
+      metadata,
+      row.created_at,
+    );
+
+    return c.json({
+      passport_id: row.id,
+      trust_score: score,
+      trust_level: level,
+      factors,
+    });
+  });
+
+  // PATCH /passports/:id/trust/payment-method — set payment_method flag
+  router.patch("/:id/trust/payment-method", requireAuth(db), async (c) => {
+    const owner = c.get("owner") as OwnerPayload;
+    const passportId = c.req.param("id");
+
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
+
+    const metadata = parseMetadata(row.metadata);
+    metadata.payment_method = true;
+
+    const { score, level, factors } = await recalculateAndPersist(
+      passportId,
+      metadata,
+      row.created_at,
+    );
+
+    return c.json({
+      passport_id: row.id,
+      trust_score: score,
+      trust_level: level,
+      factors,
+    });
+  });
+
   // POST /passports/:id/report-abuse — increment abuse count and recalculate
   router.post("/:id/report-abuse", requireAuth(db), zValidator(ReportAbuseSchema), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
-    const rows = await db<PassportRow[]>`
-      SELECT id, owner_email, trust_score, status, metadata, created_at
-      FROM passports WHERE id = ${passportId}
-    `;
-    const row = rows[0];
-
-    if (!row) {
-      return c.json(
-        { error: "Passport not found", code: "NOT_FOUND" },
-        404,
-      );
-    }
-
-    // Verify owner owns this passport
-    if (row.owner_email !== owner.email) {
-      return c.json(
-        { error: "Access denied", code: "FORBIDDEN" },
-        403,
-      );
-    }
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
 
     const body = getValidatedBody<ReportAbuseBody>(c);
     const metadata = parseMetadata(row.metadata);
@@ -162,23 +235,16 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
     }
     (metadata.abuse_reasons as string[]).push(body.reason);
 
-    // Recalculate trust score
-    const successfulAuths = await getSuccessfulAuths(passportId);
-    const factors = buildTrustFactors(metadata, row.created_at, successfulAuths);
-    const newScore = calculateTrustScore(factors);
-
-    // Persist changes
-    const metadataJson = JSON.stringify(metadata);
-    await db`
-      UPDATE passports
-      SET trust_score = ${newScore}, metadata = ${metadataJson}::jsonb, updated_at = NOW()
-      WHERE id = ${passportId}
-    `;
+    const { score, level } = await recalculateAndPersist(
+      passportId,
+      metadata,
+      row.created_at,
+    );
 
     return c.json({
       passport_id: row.id,
-      trust_score: newScore,
-      trust_level: getTrustLevel(newScore),
+      trust_score: score,
+      trust_level: level,
       abuse_reports: newReports,
     });
   });

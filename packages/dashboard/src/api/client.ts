@@ -13,6 +13,7 @@ export interface Passport {
   name: string;
   description: string;
   trust_score: number;
+  trust_level: "unverified" | "basic" | "verified" | "trusted";
   status: "active" | "revoked" | "pending";
   metadata: Record<string, unknown> | null;
   created_at: string;
@@ -84,6 +85,7 @@ export interface BrowserSession {
   page_url: string;
   viewport_w: number;
   viewport_h: number;
+  stream_status: "active" | "closed" | null;
   updated_at: string;
   closed_at: string | null;
 }

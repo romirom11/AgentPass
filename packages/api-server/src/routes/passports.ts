@@ -13,6 +13,7 @@ import type { Sql } from "../db/schema.js";
 import { zValidator, getValidatedBody } from "../middleware/validation.js";
 import { rateLimiters } from "../middleware/rate-limiter.js";
 import { requireAuth, type OwnerPayload, type AuthVariables } from "../middleware/auth.js";
+import { getTrustLevel } from "../services/trust-score.js";
 
 // --- Zod schemas for request validation ---
 
@@ -88,6 +89,7 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
       name: row.name,
       description: row.description,
       trust_score: row.trust_score,
+      trust_level: getTrustLevel(row.trust_score),
       status: row.status,
       metadata: row.metadata,
       created_at: row.created_at.toISOString(),
@@ -123,9 +125,16 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
       }
     }
 
+    const defaultMetadata = JSON.stringify({
+      owner_verified: false,
+      payment_method: false,
+      abuse_reports: 0,
+      abuse_reasons: [],
+    });
+
     const result = await db<{ created_at: Date }[]>`
-      INSERT INTO passports (id, public_key, owner_email, name, description, trust_score, status)
-      VALUES (${passportId}, ${body.public_key}, ${owner.email}, ${body.name}, ${body.description}, 0, 'active')
+      INSERT INTO passports (id, public_key, owner_email, name, description, trust_score, status, metadata)
+      VALUES (${passportId}, ${body.public_key}, ${owner.email}, ${body.name}, ${body.description}, 0, 'active', ${defaultMetadata}::jsonb)
       RETURNING created_at
     `;
 
@@ -175,6 +184,7 @@ export function createPassportsRouter(db: Sql): Hono<{ Variables: AuthVariables 
       name: row.name,
       description: row.description,
       trust_score: row.trust_score,
+      trust_level: getTrustLevel(row.trust_score),
       status: row.status,
       metadata: row.metadata,
       created_at: row.created_at.toISOString(),
