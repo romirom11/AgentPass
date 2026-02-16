@@ -16,6 +16,7 @@ import { verifyChallenge } from "@agentpass/core";
 /** In-memory store for pending challenges keyed by challenge string. */
 interface PendingChallenge {
   challenge: string;
+  passport_id?: string;
   created_at: number;
 }
 
@@ -33,7 +34,7 @@ interface AgentSession {
  *   Ed25519 public key (base64url). When omitted the demo app uses a built-in
  *   in-memory registry that callers can populate via the returned `registerAgent` helper.
  */
-export function createDemoApp(publicKeyLookup?: (passportId: string) => string | undefined) {
+export function createDemoApp(publicKeyLookup?: (passportId: string) => string | undefined | Promise<string | undefined>) {
   const app = new Hono();
 
   // --- In-memory stores ---
@@ -42,9 +43,9 @@ export function createDemoApp(publicKeyLookup?: (passportId: string) => string |
   const knownAgents = new Map<string, { public_key: string; name: string }>();
 
   /** Resolve a public key for a passport ID. */
-  const resolvePublicKey = (passportId: string): string | undefined => {
+  const resolvePublicKey = async (passportId: string): Promise<string | undefined> => {
     if (publicKeyLookup) {
-      return publicKeyLookup(passportId);
+      return await publicKeyLookup(passportId);
     }
     return knownAgents.get(passportId)?.public_key;
   };
@@ -86,10 +87,18 @@ export function createDemoApp(publicKeyLookup?: (passportId: string) => string |
   // --- Challenge endpoint ---
 
   app.post("/api/auth/agent/challenge", async (c) => {
+    let body: { passport_id?: string } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      // passport_id is optional for challenge — proceed without it
+    }
+
     const challenge = crypto.randomBytes(32).toString("hex");
 
     pendingChallenges.set(challenge, {
       challenge,
+      passport_id: body.passport_id,
       created_at: Date.now(),
     });
 
@@ -124,7 +133,7 @@ export function createDemoApp(publicKeyLookup?: (passportId: string) => string |
     }
 
     // Resolve the public key
-    const publicKey = resolvePublicKey(passport_id);
+    const publicKey = await resolvePublicKey(passport_id);
     if (!publicKey) {
       return c.json({ error: "Unknown passport ID" }, 404);
     }
@@ -180,6 +189,24 @@ export function createDemoApp(publicKeyLookup?: (passportId: string) => string |
       agent_name: session.agent_name,
       authenticated_at: session.authenticated_at,
     });
+  });
+
+  // --- Sessions list endpoint (for demo page polling) ---
+
+  app.get("/api/auth/agent/sessions", (c) => {
+    const result: Array<AgentSession & { session_token: string }> = [];
+    for (const [token, session] of sessions) {
+      result.push({ ...session, session_token: token });
+    }
+    return c.json({ sessions: result });
+  });
+
+  // --- Reset endpoint (clear all sessions and challenges) ---
+
+  app.delete("/api/auth/agent/sessions", (c) => {
+    sessions.clear();
+    pendingChallenges.clear();
+    return c.json({ ok: true });
   });
 
   /**

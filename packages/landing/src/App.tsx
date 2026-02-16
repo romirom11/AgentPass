@@ -46,6 +46,12 @@ function Header() {
           >
             Docs
           </a>
+          <a
+            href="/demo"
+            className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+          >
+            Live Demo
+          </a>
         </nav>
 
         <a
@@ -1793,23 +1799,52 @@ function Footer() {
   );
 }
 
+function LandingPage() {
+  return (
+    <>
+      <Hero />
+      <Problem />
+      <CompleteFlow />
+      <HowItWorks />
+      <NativeVsFallback />
+      <CodeExample />
+      <ForServices />
+      <ForOwners />
+      <OwnerNotifications />
+      <Architecture />
+      <McpTools />
+      <QuickStart />
+    </>
+  );
+}
+
+// Lazy-load demo page to keep landing bundle lean
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+const DemoPage = lazy(() => import("./pages/DemoPage.js"));
+
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-950 text-white antialiased">
       <Header />
       <main>
-        <Hero />
-        <Problem />
-        <CompleteFlow />
-        <HowItWorks />
-        <NativeVsFallback />
-        <CodeExample />
-        <ForServices />
-        <ForOwners />
-        <OwnerNotifications />
-        <Architecture />
-        <McpTools />
-        <QuickStart />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/demo"
+            element={
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+                  </div>
+                }
+              >
+                <DemoPage />
+              </Suspense>
+            }
+          />
+        </Routes>
       </main>
       <Footer />
     </div>

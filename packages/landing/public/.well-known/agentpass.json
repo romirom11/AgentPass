@@ -1,0 +1,5 @@
+{
+  "agentpass": true,
+  "auth_endpoint": "/auth/agentpass",
+  "capabilities": ["ed25519-verification"]
+}

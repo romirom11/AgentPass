@@ -25,6 +25,7 @@ import { createTelegramRouter } from "./routes/telegram.js";
 import { createHealthRouter } from "./middleware/health.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
 import { requestLogger } from "./middleware/request-logging.js";
+import { createDemoApp } from "./demo/demo-app.js";
 
 const PORT = parseInt(process.env.AGENTPASS_PORT || "3846", 10);
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://localhost:5432/agentpass";
@@ -51,7 +52,7 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
 
   // CORS with restricted origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim())
-    || ['http://localhost:3847', 'http://localhost:3849', 'http://localhost:5173'];
+    || ['http://localhost:3847', 'http://localhost:3848', 'http://localhost:3849', 'http://localhost:5173'];
 
   app.use("*", cors({
     origin: allowedOrigins,
@@ -115,6 +116,13 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   app.route("/webhook", webhookRouter);
   // Telegram routes for bot webhooks and account linking
   app.route("/telegram", telegramRouter);
+
+  // Demo service — "Login with AgentPass" native auth showcase
+  const { app: demoApp } = createDemoApp(async (passportId: string) => {
+    const rows = await db`SELECT public_key FROM passports WHERE id = ${passportId} AND status = 'active' LIMIT 1`;
+    return rows[0]?.public_key as string | undefined;
+  });
+  app.route("/demo", demoApp);
 
   // --- Global error handler ---
   app.onError((err, c) => {
