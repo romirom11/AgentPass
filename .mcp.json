@@ -5,7 +5,7 @@
       "args": ["packages/mcp-server/dist/index.js"],
       "env": {
         "AGENTPASS_API_URL": "https://api.agentpass.space",
-        "AGENTPASS_API_KEY": "${AGENTPASS_API_KEY}"
+        "AGENTPASS_API_KEY": "ak_live_f547ad472561b8562507b577a9c94cba2b3a772617bba395"
       }
     }
   }

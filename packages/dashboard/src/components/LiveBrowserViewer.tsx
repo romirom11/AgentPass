@@ -52,11 +52,15 @@ export default function LiveBrowserViewer({
   // WebSocket connection with HTTP fallback
   useEffect(() => {
     let mounted = true;
+    // Local mutable flags — no stale closure issues
+    let wsEverOpened = false;
+    let usingHttpFallback = false;
 
     function connectWebSocket() {
+      if (usingHttpFallback || !mounted) return;
+
       const token = apiClient.getToken();
       if (!token) {
-        // No token — can't connect via WS, fall back to HTTP
         startHttpPolling();
         return;
       }
@@ -76,7 +80,7 @@ export default function LiveBrowserViewer({
       ws.onopen = () => {
         if (!mounted) { ws.close(); return; }
 
-        // Send identify message
+        wsEverOpened = true;
         ws.send(JSON.stringify({ type: "identify", role: "dashboard" }));
         setConnected(true);
         setConnectionMode("ws");
@@ -91,13 +95,11 @@ export default function LiveBrowserViewer({
           const blob = new Blob([evt.data], { type: "image/jpeg" });
           const url = URL.createObjectURL(blob);
 
-          // Revoke previous blob URL to prevent memory leak
           if (prevBlobUrlRef.current) {
             URL.revokeObjectURL(prevBlobUrlRef.current);
           }
           prevBlobUrlRef.current = url;
 
-          // Update img src directly for minimal latency
           if (imgRef.current) {
             imgRef.current.src = url;
           }
@@ -135,26 +137,38 @@ export default function LiveBrowserViewer({
         wsRef.current = null;
         setConnected(false);
 
-        // Auto-reconnect after 2s
+        // If WS never connected, fall back to HTTP permanently
+        if (!wsEverOpened) {
+          startHttpPolling();
+          return;
+        }
+
+        // If already using HTTP fallback, don't try WS again
+        if (usingHttpFallback) return;
+
+        // WS was connected before — try to reconnect once, then fall back
         reconnectTimeoutRef.current = setTimeout(() => {
-          if (mounted) connectWebSocket();
+          if (!mounted || usingHttpFallback) return;
+          connectWebSocket();
         }, 2000);
       };
 
       ws.onerror = () => {
-        // Error is followed by close, which handles reconnection.
-        // If this is the first connection attempt and it fails, fall back to HTTP.
-        if (connectionMode === "connecting") {
-          ws.close();
-          if (mounted) startHttpPolling();
-        }
+        // The close event fires after error — it handles the fallback logic
       };
     }
 
     function startHttpPolling() {
-      if (!mounted) return;
+      if (!mounted || usingHttpFallback) return;
 
+      usingHttpFallback = true;
       setConnectionMode("http");
+
+      // Cancel any pending WS reconnect
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
 
       pollRef.current = setInterval(async () => {
         try {
@@ -165,6 +179,14 @@ export default function LiveBrowserViewer({
           setConnected(true);
           setError(null);
           setLastUpdate(Date.now());
+
+          // Update img src from polling data
+          if (data.screenshot && imgRef.current) {
+            const src = data.screenshot.startsWith("data:")
+              ? data.screenshot
+              : `data:image/jpeg;base64,${data.screenshot}`;
+            imgRef.current.src = src;
+          }
 
           if (data.closed_at) {
             onSessionClosed?.();
@@ -197,7 +219,6 @@ export default function LiveBrowserViewer({
         reconnectTimeoutRef.current = null;
       }
 
-      // Clean up blob URL
       if (prevBlobUrlRef.current) {
         URL.revokeObjectURL(prevBlobUrlRef.current);
         prevBlobUrlRef.current = null;
@@ -299,11 +320,10 @@ export default function LiveBrowserViewer({
     );
   }
 
-  // Determine the screenshot source:
-  // - In WS mode, imgRef.src is set directly from blob URLs
-  // - In HTTP mode, use session.screenshot from polling
-  const showDirectImg = connectionMode === "ws";
-  const httpScreenshot = connectionMode === "http" ? session?.screenshot : null;
+  // The img element's src is always managed imperatively via imgRef:
+  // - WS mode: set from blob URLs in onmessage
+  // - HTTP mode: set from polling data in setInterval callback
+  const hasScreenshot = connected && isFresh;
 
   return (
     <div
@@ -324,7 +344,7 @@ export default function LiveBrowserViewer({
             {connected && isFresh
               ? connectionMode === "ws"
                 ? "Live (WebSocket)"
-                : "Live"
+                : "Live (HTTP)"
               : "Disconnected"}
           </span>
           {session?.page_url && (
@@ -342,21 +362,20 @@ export default function LiveBrowserViewer({
 
       {/* Screenshot display */}
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-900">
-        {showDirectImg || httpScreenshot ? (
-          <img
-            ref={imgRef}
-            src={httpScreenshot ?? undefined}
-            alt="Live browser view"
-            className="block w-full cursor-crosshair"
-            style={{
-              aspectRatio: session
-                ? `${session.viewport_w} / ${session.viewport_h}`
-                : "1280 / 720",
-            }}
-            onClick={handleClick}
-            draggable={false}
-          />
-        ) : (
+        {/* Always render img — src is set imperatively via imgRef */}
+        <img
+          ref={imgRef}
+          alt="Live browser view"
+          className={`block w-full cursor-crosshair ${hasScreenshot ? "" : "hidden"}`}
+          style={{
+            aspectRatio: session
+              ? `${session.viewport_w} / ${session.viewport_h}`
+              : "1280 / 720",
+          }}
+          onClick={handleClick}
+          draggable={false}
+        />
+        {!hasScreenshot && (
           <div
             className="flex items-center justify-center bg-gray-900"
             style={{ aspectRatio: "1280 / 720" }}
