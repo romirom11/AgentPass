@@ -11,6 +11,7 @@
 import type { IdentityService } from "./identity-service.js";
 import type { CredentialService } from "./credential-service.js";
 import { NativeAuthService } from "./native-auth-service.js";
+import type { FallbackAuthService } from "./fallback-auth-service.js";
 
 export interface AuthResult {
   success: boolean;
@@ -20,6 +21,9 @@ export interface AuthResult {
   session_token?: string;
   error?: string;
   requires_action?: string;
+  needs_human?: boolean;
+  captcha_type?: string;
+  escalation_id?: string;
 }
 
 export class AuthService {
@@ -29,6 +33,7 @@ export class AuthService {
     private readonly identityService: IdentityService,
     private readonly credentialService: CredentialService,
     nativeAuthService?: NativeAuthService,
+    private readonly fallbackAuthService?: FallbackAuthService,
   ) {
     this.nativeAuthService = nativeAuthService ?? new NativeAuthService();
   }
@@ -91,14 +96,33 @@ export class AuthService {
       }
     }
 
-    // Step 3: Check for existing credentials (fallback)
+    // Step 3: Fallback auth — delegate to FallbackAuthService if available
+    if (this.fallbackAuthService) {
+      const fallbackResult = await this.fallbackAuthService.authenticateOnService(
+        input.passport_id,
+        input.service_url,
+      );
+      return {
+        success: fallbackResult.success,
+        method: fallbackResult.method === "session_reuse" ? "fallback_login" : fallbackResult.method,
+        service: serviceDomain,
+        passport_id: input.passport_id,
+        session_token: fallbackResult.session?.token,
+        error: fallbackResult.error,
+        requires_action: fallbackResult.needs_human ? "captcha_required" : undefined,
+        needs_human: fallbackResult.needs_human,
+        captcha_type: fallbackResult.captcha_type,
+        escalation_id: fallbackResult.escalation_id,
+      };
+    }
+
+    // Passive fallback (no browser automation available)
     const credential = await this.credentialService.getCredential(
       input.passport_id,
       serviceDomain,
     );
 
     if (credential) {
-      // Step 4: Credentials found — would attempt login via browser
       return {
         success: true,
         method: "fallback_login",
@@ -108,7 +132,6 @@ export class AuthService {
       };
     }
 
-    // Step 5: No credentials — would trigger registration via browser
     return {
       success: false,
       method: "fallback_register",
