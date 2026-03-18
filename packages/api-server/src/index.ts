@@ -52,6 +52,17 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   // Request logging (must be first to capture all requests)
   app.use("*", requestLogger());
 
+  // Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, CSP)
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Frame-Options", "DENY");
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    c.header("Content-Security-Policy", "default-src 'self'");
+    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.header("X-XSS-Protection", "0");
+  });
+
   // CORS with restricted origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim())
     || ['http://localhost:3847', 'http://localhost:3848', 'http://localhost:3849', 'http://localhost:5173'];
