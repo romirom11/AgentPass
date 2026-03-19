@@ -235,5 +235,22 @@ export async function initDatabase(connectionString?: string): Promise<Sql> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_owner_settings_owner_id ON owner_settings(owner_id)`;
 
+  // CoinPay OAuth links table
+  await sql`
+    CREATE TABLE IF NOT EXISTS coinpay_links (
+      id              TEXT PRIMARY KEY,
+      owner_id        TEXT NOT NULL REFERENCES owners(id) ON DELETE CASCADE,
+      coinpay_sub     TEXT UNIQUE NOT NULL,
+      coinpay_did     TEXT,
+      coinpay_wallets JSONB NOT NULL DEFAULT '[]'::jsonb,
+      access_token    TEXT NOT NULL,
+      refresh_token   TEXT,
+      linked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_coinpay_links_owner_id ON coinpay_links(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_coinpay_links_coinpay_sub ON coinpay_links(coinpay_sub)`;
+
   return sql;
 }

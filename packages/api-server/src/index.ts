@@ -24,6 +24,7 @@ import { createWebhookRouter } from "./routes/webhooks.js";
 import { createTelegramRouter } from "./routes/telegram.js";
 import { createMessagesRouter } from "./routes/messages.js";
 import { createSettingsRouter } from "./routes/settings.js";
+import { createCoinPayOAuthRouter } from "./routes/coinpay-oauth.js";
 import { createHealthRouter } from "./middleware/health.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
 import { requestLogger } from "./middleware/request-logging.js";
@@ -89,7 +90,14 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
         webhook: "/webhook/email-received",
         telegram: "/telegram/link/:email",
       },
-      capabilities: ["ed25519-verification", "trust-scoring", "audit-logging"],
+      capabilities: ["ed25519-verification", "trust-scoring", "audit-logging", "coinpay-oauth"],
+      oauth: {
+        coinpay: {
+          login: "/auth/coinpay/login",
+          callback: "/auth/coinpay/callback",
+          userinfo: "/auth/coinpay/userinfo",
+        },
+      },
     });
   });
 
@@ -108,6 +116,7 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   const messagesRouter = createMessagesRouter(db);
   const settingsRouter = createSettingsRouter(db);
   const telegramRouter = createTelegramRouter(db);
+  const coinpayOAuthRouter = createCoinPayOAuthRouter(db);
   const healthRouter = createHealthRouter(db);
 
   app.route("/", healthRouter);
@@ -135,6 +144,8 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   app.route("/settings", settingsRouter);
   // Telegram routes for bot webhooks and account linking
   app.route("/telegram", telegramRouter);
+  // CoinPay OAuth 2.0 / OIDC login
+  app.route("/auth", coinpayOAuthRouter);
 
   // Demo service — "Login with AgentPass" native auth showcase
   const { app: demoApp } = createDemoApp(
