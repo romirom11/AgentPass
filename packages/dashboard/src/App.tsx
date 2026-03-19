@@ -11,6 +11,7 @@ import ActivityPage from "./pages/ActivityPage.js";
 import ApprovalsPage from "./pages/ApprovalsPage.js";
 import SettingsPage from "./pages/SettingsPage.js";
 import SolveCaptchaPage from "./pages/SolveCaptchaPage.js";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage.js";
 import { useEffect } from "react";
 import { apiClient } from "./api/client.js";
 
@@ -50,6 +51,7 @@ function AppContent() {
           <RegisterPage />
         </>
       } />
+      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>

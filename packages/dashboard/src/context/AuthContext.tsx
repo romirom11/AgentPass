@@ -17,6 +17,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  setTokenDirectly: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -191,6 +192,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   };
 
+  const setTokenDirectly = (token: string) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    setState({
+      token,
+      owner: null,
+      isAuthenticated: true,
+      isLoading: true,
+    });
+    // Validate and fetch owner info in background
+    validateToken(token).then((owner) => {
+      if (owner) {
+        localStorage.setItem(OWNER_KEY, JSON.stringify(owner));
+        setState({ token, owner, isAuthenticated: true, isLoading: false });
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(OWNER_KEY);
+        setState({ token: null, owner: null, isAuthenticated: false, isLoading: false });
+      }
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(OWNER_KEY);
@@ -209,6 +231,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         login,
         register,
         logout,
+        setTokenDirectly,
       }}
     >
       {children}
