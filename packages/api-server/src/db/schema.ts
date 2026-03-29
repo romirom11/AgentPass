@@ -206,5 +206,51 @@ export async function initDatabase(connectionString?: string): Promise<Sql> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_browser_commands_session_id ON browser_commands(session_id, status)`;
 
+  // Create messages table (agent-to-agent messaging)
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id                 TEXT PRIMARY KEY,
+      from_passport_id   TEXT NOT NULL REFERENCES passports(id),
+      to_passport_id     TEXT NOT NULL REFERENCES passports(id),
+      subject            TEXT NOT NULL DEFAULT '',
+      body               TEXT NOT NULL,
+      read               BOOLEAN NOT NULL DEFAULT false,
+      created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_to_passport ON messages(to_passport_id, created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_from_passport ON messages(from_passport_id, created_at DESC)`;
+
+  // Create owner_settings table (key-value store per owner)
+  await sql`
+    CREATE TABLE IF NOT EXISTS owner_settings (
+      owner_id    TEXT NOT NULL REFERENCES owners(id),
+      key         TEXT NOT NULL,
+      value       TEXT NOT NULL DEFAULT '',
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (owner_id, key)
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_owner_settings_owner_id ON owner_settings(owner_id)`;
+
+  // CoinPay OAuth links table
+  await sql`
+    CREATE TABLE IF NOT EXISTS coinpay_links (
+      id              TEXT PRIMARY KEY,
+      owner_id        TEXT NOT NULL REFERENCES owners(id) ON DELETE CASCADE,
+      coinpay_sub     TEXT UNIQUE NOT NULL,
+      coinpay_did     TEXT,
+      coinpay_wallets JSONB NOT NULL DEFAULT '[]'::jsonb,
+      access_token    TEXT NOT NULL,
+      refresh_token   TEXT,
+      linked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_coinpay_links_owner_id ON coinpay_links(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_coinpay_links_coinpay_sub ON coinpay_links(coinpay_sub)`;
+
   return sql;
 }

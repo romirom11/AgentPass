@@ -16,12 +16,21 @@ import {
   calculateTrustScore,
   getTrustLevel,
   type TrustFactors,
+  type ExternalAttestationFactor,
 } from "../services/trust-score.js";
 
 // --- Zod schema for abuse report ---
 
 const ReportAbuseSchema = z.object({
   reason: z.string().min(1, "Reason is required").max(512, "Reason must be 512 characters or fewer"),
+});
+
+const AddAttestationSchema = z.object({
+  source: z.string().min(1, "Source is required").max(128),
+  attester_id: z.string().min(1, "Attester ID is required").max(256),
+  score: z.number().min(0).max(1),
+  attested_at: z.string().min(1, "Attested at is required"),
+  signature: z.string().optional(),
 });
 
 type ReportAbuseBody = z.infer<typeof ReportAbuseSchema>;
@@ -42,8 +51,12 @@ interface PassportRow {
  * Parse the metadata JSONB column, returning a typed object with
  * known trust-related fields.
  */
-function parseMetadata(raw: Record<string, unknown> | null): Record<string, unknown> {
-  return raw ?? {};
+function parseMetadata(raw: Record<string, unknown> | string | null): Record<string, unknown> {
+  if (raw === null || raw === undefined) return {};
+  if (typeof raw === "string") {
+    try { return JSON.parse(raw); } catch { return {}; }
+  }
+  return raw;
 }
 
 /**
@@ -64,6 +77,9 @@ function buildTrustFactors(
     age_days: ageDays,
     successful_auths: successfulAuths,
     abuse_reports: typeof metadata.abuse_reports === "number" ? metadata.abuse_reports : 0,
+    external_attestations: Array.isArray(metadata.external_attestations)
+      ? (metadata.external_attestations as ExternalAttestationFactor[])
+      : undefined,
   };
 }
 
@@ -161,16 +177,34 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   });
 
   // PATCH /passports/:id/trust/verify-owner — set owner_verified flag
+  // Requires a DIFFERENT authenticated user (admin or verifier), not the passport owner.
+  // Self-verification is not allowed to prevent trust score manipulation.
   router.patch("/:id/trust/verify-owner", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
-    const result = await fetchOwnedPassport(c, passportId, owner);
-    if (result instanceof Response) return result;
-    const row = result;
+    // Look up the passport (without ownership check — the caller must NOT be the owner)
+    const rows = await db<PassportRow[]>`
+      SELECT id, owner_email, trust_score, status, metadata, created_at
+      FROM passports WHERE id = ${passportId}
+    `;
+    const row = rows[0];
+
+    if (!row) {
+      return c.json({ error: "Passport not found", code: "NOT_FOUND" }, 404);
+    }
+
+    // Prevent self-verification: owner cannot verify their own passport
+    if (row.owner_email === owner.email) {
+      return c.json(
+        { error: "Cannot verify your own passport. Verification must be performed by another authorized party.", code: "SELF_VERIFICATION_FORBIDDEN" },
+        403,
+      );
+    }
 
     const metadata = parseMetadata(row.metadata);
     metadata.owner_verified = true;
+    metadata.verified_by = owner.email;
 
     const { score, level, factors } = await recalculateAndPersist(
       passportId,
@@ -187,16 +221,34 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
   });
 
   // PATCH /passports/:id/trust/payment-method — set payment_method flag
+  // Requires a DIFFERENT authenticated user (admin or payment processor), not the passport owner.
+  // Self-attestation of payment method is not allowed to prevent trust score manipulation.
   router.patch("/:id/trust/payment-method", requireAuth(db), async (c) => {
     const owner = c.get("owner") as OwnerPayload;
     const passportId = c.req.param("id");
 
-    const result = await fetchOwnedPassport(c, passportId, owner);
-    if (result instanceof Response) return result;
-    const row = result;
+    // Look up the passport (without ownership check — the caller must NOT be the owner)
+    const rows = await db<PassportRow[]>`
+      SELECT id, owner_email, trust_score, status, metadata, created_at
+      FROM passports WHERE id = ${passportId}
+    `;
+    const row = rows[0];
+
+    if (!row) {
+      return c.json({ error: "Passport not found", code: "NOT_FOUND" }, 404);
+    }
+
+    // Prevent self-attestation: owner cannot set payment method on their own passport
+    if (row.owner_email === owner.email) {
+      return c.json(
+        { error: "Cannot attest payment method on your own passport. This must be confirmed by a payment processor or admin.", code: "SELF_ATTESTATION_FORBIDDEN" },
+        403,
+      );
+    }
 
     const metadata = parseMetadata(row.metadata);
     metadata.payment_method = true;
+    metadata.payment_verified_by = owner.email;
 
     const { score, level, factors } = await recalculateAndPersist(
       passportId,
@@ -246,6 +298,68 @@ export function createTrustRouter(db: Sql): Hono<{ Variables: AuthVariables }> {
       trust_score: score,
       trust_level: level,
       abuse_reports: newReports,
+    });
+  });
+
+  // POST /passports/:id/attestations — add external attestation
+  router.post("/:id/attestations", requireAuth(db), zValidator(AddAttestationSchema), async (c) => {
+    const owner = c.get("owner") as OwnerPayload;
+    const passportId = c.req.param("id");
+
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
+
+    const body = getValidatedBody<z.infer<typeof AddAttestationSchema>>(c);
+    const metadata = parseMetadata(row.metadata);
+
+    // Initialize attestations array if needed
+    if (!Array.isArray(metadata.external_attestations)) {
+      metadata.external_attestations = [];
+    }
+
+    const attestation: ExternalAttestationFactor = {
+      source: body.source,
+      attester_id: body.attester_id,
+      score: body.score,
+      attested_at: body.attested_at,
+      ...(body.signature ? { signature: body.signature } : {}),
+    };
+
+    (metadata.external_attestations as ExternalAttestationFactor[]).push(attestation);
+
+    const { score, level, factors } = await recalculateAndPersist(
+      passportId,
+      metadata,
+      row.created_at,
+    );
+
+    return c.json({
+      passport_id: row.id,
+      trust_score: score,
+      trust_level: level,
+      attestation,
+    }, 201);
+  });
+
+  // GET /passports/:id/attestations — list external attestations
+  router.get("/:id/attestations", requireAuth(db), async (c) => {
+    const owner = c.get("owner") as OwnerPayload;
+    const passportId = c.req.param("id");
+
+    const result = await fetchOwnedPassport(c, passportId, owner);
+    if (result instanceof Response) return result;
+    const row = result;
+
+    const metadata = parseMetadata(row.metadata);
+    const attestations = Array.isArray(metadata.external_attestations)
+      ? metadata.external_attestations
+      : [];
+
+    return c.json({
+      passport_id: row.id,
+      attestations,
+      count: attestations.length,
     });
   });
 

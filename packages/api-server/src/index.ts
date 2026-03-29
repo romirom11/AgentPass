@@ -22,6 +22,9 @@ import { createEscalationsRouter } from "./routes/escalations.js";
 import { createBrowserSessionsRouter } from "./routes/browser-sessions.js";
 import { createWebhookRouter } from "./routes/webhooks.js";
 import { createTelegramRouter } from "./routes/telegram.js";
+import { createMessagesRouter } from "./routes/messages.js";
+import { createSettingsRouter } from "./routes/settings.js";
+import { createCoinPayOAuthRouter } from "./routes/coinpay-oauth.js";
 import { createHealthRouter } from "./middleware/health.js";
 import { rateLimiters } from "./middleware/rate-limiter.js";
 import { requestLogger } from "./middleware/request-logging.js";
@@ -50,6 +53,17 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   // Request logging (must be first to capture all requests)
   app.use("*", requestLogger());
 
+  // Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, CSP)
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Frame-Options", "DENY");
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    c.header("Content-Security-Policy", "default-src 'self'");
+    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.header("X-XSS-Protection", "0");
+  });
+
   // CORS with restricted origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim())
     || ['http://localhost:3847', 'http://localhost:3848', 'http://localhost:3849', 'http://localhost:5173'];
@@ -76,7 +90,14 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
         webhook: "/webhook/email-received",
         telegram: "/telegram/link/:email",
       },
-      capabilities: ["ed25519-verification", "trust-scoring", "audit-logging"],
+      capabilities: ["ed25519-verification", "trust-scoring", "audit-logging", "coinpay-oauth"],
+      oauth: {
+        coinpay: {
+          login: "/auth/coinpay/login",
+          callback: "/auth/coinpay/callback",
+          userinfo: "/auth/coinpay/userinfo",
+        },
+      },
     });
   });
 
@@ -92,7 +113,10 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   const escalationsRouter = createEscalationsRouter(db);
   const browserSessionsRouter = createBrowserSessionsRouter(db, upgradeWebSocket);
   const webhookRouter = createWebhookRouter(db);
-  const telegramRouter = createTelegramRouter();
+  const messagesRouter = createMessagesRouter(db);
+  const settingsRouter = createSettingsRouter(db);
+  const telegramRouter = createTelegramRouter(db);
+  const coinpayOAuthRouter = createCoinPayOAuthRouter(db);
   const healthRouter = createHealthRouter(db);
 
   app.route("/", healthRouter);
@@ -114,8 +138,14 @@ export async function createApp(connectionString: string = DATABASE_URL): Promis
   app.route("/browser-sessions", browserSessionsRouter);
   // Webhook routes for external services (email worker, etc.)
   app.route("/webhook", webhookRouter);
+  // Agent-to-agent messaging
+  app.route("/messages", messagesRouter);
+  // Owner settings (webhook URL, telegram chat ID, notification prefs)
+  app.route("/settings", settingsRouter);
   // Telegram routes for bot webhooks and account linking
   app.route("/telegram", telegramRouter);
+  // CoinPay OAuth 2.0 / OIDC login
+  app.route("/auth", coinpayOAuthRouter);
 
   // Demo service — "Login with AgentPass" native auth showcase
   const { app: demoApp } = createDemoApp(

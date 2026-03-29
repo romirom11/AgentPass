@@ -26,8 +26,8 @@ bd show <issue-id>
 bd update <issue-id> --status in_progress
 bd update <issue-id> --status done
 
-# Sync with git remote
-bd sync
+# Sync with Dolt remote
+bd dolt push
 ```
 
 ### Working with Issues
@@ -61,6 +61,11 @@ Try Beads in your own projects:
 
 ```bash
 # Install Beads
+# ⚠️  Security Warning: Piping curl to bash executes remote code without verification.
+#     Review the script first, or download and inspect before running:
+#     curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh -o install.sh
+#     cat install.sh  # review the script
+#     bash install.sh
 curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
 
 # Initialize in your repo

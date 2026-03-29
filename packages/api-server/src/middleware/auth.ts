@@ -34,15 +34,10 @@ function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "JWT_SECRET environment variable is required in production. " +
-        "Generate a secure secret (min 32 chars) and set it in your environment.",
-      );
-    }
-    // Development fallback
-    console.warn("[Auth] Using default JWT_SECRET for development. DO NOT use in production.");
-    return new TextEncoder().encode("dev-secret-DO-NOT-USE-IN-PRODUCTION-min-32-chars");
+    throw new Error(
+      "JWT_SECRET environment variable is required. " +
+      "Generate a secure secret: openssl rand -base64 32",
+    );
   }
 
   if (secret.length < 32) {

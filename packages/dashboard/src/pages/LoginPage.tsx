@@ -162,6 +162,26 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="mt-6 flex items-center">
+            <div className="flex-1 border-t border-gray-200"></div>
+            <span className="mx-4 text-sm text-gray-400">or</span>
+            <div className="flex-1 border-t border-gray-200"></div>
+          </div>
+
+          {/* CoinPay OAuth Login */}
+          <div className="mt-4">
+            <a
+              href={`${import.meta.env.VITE_API_URL || "http://localhost:3846"}/auth/coinpay/login`}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              Sign in with CoinPay
+            </a>
+          </div>
+
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

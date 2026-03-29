@@ -20,12 +20,7 @@ export function createHealthRouter(db: Sql) {
   const router = new Hono();
 
   router.get("/health", (c) => {
-    const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
-    return c.json({
-      status: "ok",
-      version: VERSION,
-      uptime_seconds: uptimeSeconds,
-    });
+    return c.json({ status: "ok" });
   });
 
   router.get("/ready", async (c) => {

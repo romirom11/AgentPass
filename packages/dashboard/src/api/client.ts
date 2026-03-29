@@ -111,6 +111,21 @@ export interface RegisterPassportResponse {
   created_at: string;
 }
 
+export interface TrustFactors {
+  owner_verified: boolean;
+  payment_method: boolean;
+  age_days: number;
+  successful_auths: number;
+  abuse_reports: number;
+}
+
+export interface TrustScoreResponse {
+  passport_id: string;
+  trust_score: number;
+  trust_level: "unverified" | "basic" | "verified" | "trusted";
+  factors: TrustFactors;
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -315,6 +330,24 @@ class ApiClient {
   }
 
   /**
+   * Get owner settings from server.
+   */
+  async getSettings(): Promise<Record<string, string>> {
+    const response = await this.fetch<{ settings: Record<string, string> }>("/settings");
+    return response.settings;
+  }
+
+  /**
+   * Update owner settings on server.
+   */
+  async updateSettings(settings: Record<string, string>): Promise<void> {
+    await this.fetch<{ ok: boolean }>("/settings", {
+      method: "PUT",
+      body: JSON.stringify({ settings }),
+    });
+  }
+
+  /**
    * List approval requests for the owner's passports.
    */
   async listApprovals(status?: string): Promise<Approval[]> {
@@ -387,6 +420,13 @@ class ApiClient {
         body: JSON.stringify({ type, payload }),
       },
     );
+  }
+
+  /**
+   * Get detailed trust score with factor breakdown.
+   */
+  async getTrustScore(passportId: string): Promise<TrustScoreResponse> {
+    return this.fetch<TrustScoreResponse>(`/passports/${passportId}/trust`);
   }
 
   /**
